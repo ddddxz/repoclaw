@@ -86,11 +86,10 @@
 ### 阶段五：生产容器化编排、录制 Demo 与开源发布
 > 目标：单命令容器化上线，打磨顶级开源外观，发布 GitHub Marketplace。
 
-- [ ] **Task 5.1: 编写生产 `docker-compose.yml`**
+- [x] **Task 5.1: 编写生产 `docker-compose.yml`**
   - 编排 Redis 服务与 RepoClaw Bot 服务，映射 Docker Socket 与 SQLite 数据卷
 - [ ] **Task 5.2: 真实生产部署与 Webhook 联调**
   - 部署至 Linux 云服务器/重大实验室服务器，通过 Cloudflare Tunnel / 域名配置公开 Webhook URL
-- [ ] **Task 5.3: 开源门面与宣传物料**
-  - 录制 30 秒高清交互动图：从维护者评论 `@repoclaw repro` 到机器人自动打标并回帖复现代码的全过程
-  - 撰写中英文双语 `README.md`，嵌入架构图与架构设计说明
-  - 发布至 GitHub，申请 GitHub Marketplace 徽章
+- [x] **Task 5.3: 开源门面与宣传物料**
+  - 撰写中英文双语高 Star 门面 `README.md` 与 `README.en.md`，嵌入架构图、核心铁律与 ChatOps 执行示范
+  - 提供 MIT 开源许可证与 GitHub App 接入指引

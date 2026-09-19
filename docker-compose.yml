@@ -1,0 +1,58 @@
+services:
+  # 1. 异步削峰 Redis 缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: repoclaw-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - repoclaw-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 2. RepoClaw GitHub App 核心服务
+  repoclaw-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: repoclaw-bot
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=file:/app/data/repoclaw.db
+      - APP_ID=${APP_ID}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - MODEL_NAME=${MODEL_NAME:-deepseek-chat}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - SANDBOX_TIMEOUT_MS=${SANDBOX_TIMEOUT_MS:-30000}
+    volumes:
+      # 挂载宿主机 Docker Socket 以便管理受限沙箱容器
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 挂载 SQLite 持久化数据目录
+      - ./data:/app/data
+    networks:
+      - repoclaw-net
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  repoclaw-net:
+    driver: bridge

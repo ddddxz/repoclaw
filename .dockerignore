@@ -1,0 +1,15 @@
+node_modules
+.git
+.pnpm-store
+dist
+build
+data
+*.db
+*.db-journal
+*.log
+.env
+.env.local
+.vscode
+.idea
+scratch
+repro_temp
