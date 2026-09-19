@@ -5,11 +5,15 @@ import {
   isChatOpsCommand,
 } from "../gateway/filter.js";
 import { enqueueReproTask } from "../queue/repro-queue.js";
+import { getDatabase, type ReproTaskRepository } from "../db/index.js";
 
 /**
  * 处理 GitHub issue_comment.created 事件
  */
-export async function handleIssueCommentCreated(context: Context<"issue_comment.created">) {
+export async function handleIssueCommentCreated(
+  context: Context<"issue_comment.created">,
+  customDb?: ReproTaskRepository
+) {
   const { comment, issue, repository } = context.payload;
 
   // 1. 忽略机器人自身发表的评论，杜绝无限递归死循环
@@ -52,7 +56,7 @@ export async function handleIssueCommentCreated(context: Context<"issue_comment.
     context.log.warn(`[RepoClaw Gateway]: 添加 👀 表情失败 (可能缺少权限): ${err}`);
   }
 
-  // 5. 构建标准任务载荷并入队 BullMQ 削峰
+  // 5. 构建标准任务载荷
   const payload = buildIssuePayload({
     repoOwner: repository.owner.login,
     repoName: repository.name,
@@ -65,6 +69,32 @@ export async function handleIssueCommentCreated(context: Context<"issue_comment.
     authorAssociation,
   });
 
+  // 6. 审计持久化：写入任务初始记录与审计流水
+  try {
+    const db = customDb || (await getDatabase());
+    const now = new Date().toISOString();
+    await db.createTask({
+      id: payload.id,
+      repoFullName: payload.repoFullName,
+      issueNumber: payload.issueNumber,
+      commentId: payload.commentId,
+      triggerUser: payload.triggerUser,
+      status: "PENDING",
+      step: "INIT",
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.recordAuditLog(
+      payload.id,
+      "INIT",
+      `收到维护者 @${payload.triggerUser} 指令，任务已登记`,
+      { authorAssociation: payload.authorAssociation }
+    );
+  } catch (dbErr) {
+    context.log.warn(`[RepoClaw DB Warning]: 记录初始任务失败: ${dbErr}`);
+  }
+
+  // 7. 入队 BullMQ 削峰
   const taskId = await enqueueReproTask(payload);
   context.log.info(`[RepoClaw Gateway]: 任务已成功入队，Task ID: ${taskId}`);
 }

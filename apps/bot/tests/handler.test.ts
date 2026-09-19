@@ -173,4 +173,56 @@ describe("@repoclaw/bot issue_comment.created 事件处理测试", () => {
 
     enqueueSpy.mockRestore();
   });
+
+  it("当合法维护者触发指令时，Handler 应成功初始化数据库任务记录与审计日志", async () => {
+    const enqueueSpy = vi.spyOn(queueModule, "enqueueReproTask").mockResolvedValue("task-db-mock");
+    const { createClient } = await import("@libsql/client");
+    const { ReproTaskRepository } = await import("../src/db/index.js");
+
+    const client = createClient({ url: ":memory:" });
+    const repo = new ReproTaskRepository(client);
+    await repo.initSchema();
+
+    const mockContext: any = {
+      payload: {
+        comment: {
+          id: 1234,
+          body: "@repoclaw repro",
+          user: { login: "maintainer_bob", type: "User" },
+          author_association: "MEMBER",
+        },
+        issue: {
+          number: 99,
+          title: "DB Handler Test",
+          body: "Trigger crash",
+        },
+        repository: {
+          name: "test-repo",
+          owner: { login: "test-org" },
+          full_name: "test-org/test-repo",
+          clone_url: "https://github.com/test-org/test-repo.git",
+        },
+      },
+      log: { info: vi.fn(), warn: vi.fn() },
+      issue: (obj: any) => obj,
+      octokit: {
+        reactions: { createForIssueComment: vi.fn().mockResolvedValue({}) },
+        issues: { createComment: vi.fn().mockResolvedValue({}) },
+      },
+    };
+
+    await handleIssueCommentCreated(mockContext, repo);
+
+    const tasks = await repo.listTasks("test-org/test-repo");
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].triggerUser).toBe("maintainer_bob");
+    expect(tasks[0].status).toBe("PENDING");
+
+    const logs = await repo.getAuditLogs(tasks[0].id);
+    expect(logs).toHaveLength(1);
+    expect(logs[0].step).toBe("INIT");
+
+    await repo.close();
+    enqueueSpy.mockRestore();
+  });
 });

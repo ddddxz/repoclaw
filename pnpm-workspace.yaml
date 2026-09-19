@@ -3,6 +3,7 @@ packages:
   - 'apps/*'
 
 allowBuilds:
+  better-sqlite3: false
   cpu-features: true
   esbuild: true
   msgpackr-extract: true

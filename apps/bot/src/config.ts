@@ -7,6 +7,7 @@ export const config = {
   privateKey: process.env.PRIVATE_KEY || "mock-private-key",
   webhookSecret: process.env.WEBHOOK_SECRET || "development-secret",
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
+  databaseUrl: process.env.DATABASE_URL || "file:repoclaw.db",
   port: parseInt(process.env.PORT || "3000", 10),
   modelName: process.env.MODEL_NAME || "deepseek-chat",
   deepseekApiKey: process.env.DEEPSEEK_API_KEY || "",

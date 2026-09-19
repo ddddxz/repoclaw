@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
+import { createClient } from "@libsql/client";
 import * as coreModule from "@repoclaw/core";
 import { MockLlmProvider } from "@repoclaw/core";
 import { MockSandboxRunner } from "@repoclaw/sandbox";
 import type { IssuePayload } from "@repoclaw/shared";
 import { processReproJob } from "../src/queue/repro-worker.js";
+import { ReproTaskRepository } from "../src/db/index.js";
 
 describe("@repoclaw/bot Worker 任务消费与 GitHub 结果回写测试", () => {
   it("当复现成功时，应自动回帖 Markdown、打标 [reproduced] 并贴 🚀", async () => {
@@ -152,5 +154,64 @@ describe("@repoclaw/bot Worker 任务消费与 GitHub 结果回写测试", () =>
       issue_number: 43,
       body: expect.stringContaining("RepoClaw 复现尝试反馈 (Clarification Needed)"),
     });
+  });
+
+  it("当关联 SQLite 数据库时，应全生命周期记录状态与审计流水", async () => {
+    vi.spyOn(coreModule, "shallowCloneRepo").mockResolvedValue({ durationMs: 50 });
+
+    const client = createClient({ url: ":memory:" });
+    const repo = new ReproTaskRepository(client);
+    await repo.initSchema();
+
+    const taskId = "task-audit-123";
+    const now = new Date().toISOString();
+    await repo.createTask({
+      id: taskId,
+      repoFullName: "owner/cool-repo",
+      issueNumber: 88,
+      commentId: 666,
+      triggerUser: "maintainer_dan",
+      status: "PENDING",
+      step: "INIT",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const mockJob: any = {
+      data: {
+        id: taskId,
+        repoFullName: "owner/cool-repo",
+        repoCloneUrl: "https://github.com/owner/cool-repo.git",
+        issueNumber: 88,
+        issueTitle: "Zero division in test",
+        issueBody: "Calling zero triggers ZeroDivisionError",
+        commentId: 666,
+        triggerUser: "maintainer_dan",
+        authorAssociation: "OWNER",
+      } satisfies IssuePayload,
+      updateProgress: vi.fn(),
+    };
+
+    const mockLlm = new MockLlmProvider();
+    const mockSandbox = new MockSandboxRunner();
+
+    await processReproJob(mockJob, {
+      llmProvider: mockLlm,
+      sandboxRunner: mockSandbox,
+      db: repo,
+    });
+
+    const recordedTask = await repo.getTask(taskId);
+    expect(recordedTask?.status).toBe("VERIFIED");
+    expect(recordedTask?.reproScript).toBeDefined();
+    expect(recordedTask?.actualTraceback).toBeDefined();
+
+    const logs = await repo.getAuditLogs(taskId);
+    expect(logs.length).toBeGreaterThan(2);
+    const steps = logs.map((l) => l.step);
+    expect(steps).toContain("CLONING");
+    expect(steps).toContain("GITHUB_NOTIFY");
+
+    await repo.close();
   });
 });
