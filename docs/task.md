@@ -8,7 +8,7 @@
 ## 阶段规划概览 (Milestones)
 
 - [x] **M1: 基础工程与 Docker 沙箱隔离器 (Sandbox & Isolation Core)**
-- [ ] **M2: Agent 意图推导与自愈反思闭环 (Agentic Reproduction Loop)**
+- [x] **M2: Agent 意图推导与自愈反思闭环 (Agentic Reproduction Loop)**
 - [ ] **M3: Probot GitHub App 网关与 ChatOps 调度 (Probot & Queue Gateway)**
 - [ ] **M4: SQLite 审计落盘与状态可视化 (Persistence & Telemetry)**
 - [ ] **M5: 生产容器化编排、录制 Demo 与开源发布 (Release & Open Source)**
@@ -39,17 +39,17 @@
 ### 阶段二：Agent 意图推导与自愈反思闭环 (`packages/core`)
 > 目标：输入一段 Issue 文本和仓库路径，大模型自动生成最小测试脚本，并在沙箱中多轮自愈，直到成功触发业务 Bug。
 
-- [ ] **Task 2.1: 浅克隆与仓库预处理 (`packages/core/src/git.ts`)**
-  - 基于 `simple-git` 或原生 `child_process` 实现目标仓库最新 commit 的浅克隆 (`--depth 1`)
+- [x] **Task 2.1: 浅克隆与仓库预处理 (`packages/core/src/git.ts`)**
+  - 基于原生 `child_process` 实现目标仓库最新 commit 的浅克隆 (`--depth 1`)
   - 自动定位仓库根目录与可导入的包名
-- [ ] **Task 2.2: 提示词工程与 Vercel AI SDK 接入 (`packages/core/src/prompt.ts`)**
-  - 接入 DeepSeek-V3 / Qwen-2.5-Coder API
+- [x] **Task 2.2: 提示词工程与 Vercel AI SDK 接入 (`packages/core/src/prompt.ts`)**
+  - 接入 DeepSeek-V3 / Qwen-2.5-Coder API (基于 Vercel AI SDK + OpenAI 兼容格式)
   - 编写系统提示词，强制模型基于 Zod Schema 输出结构化 `ReproPlan`（包含预期 `targetException` 与 `reproScript`）
-- [ ] **Task 2.3: 堆栈匹配与自愈反思状态机 (`packages/core/src/agent.ts`)**
+- [x] **Task 2.3: 堆栈匹配与自愈反思状态机 (`packages/core/src/agent.ts`)**
   - 实现堆栈校验器：验证抛出的异常类名是否匹配，且堆栈是否溯源到仓库源码目录
   - 实现反思循环：若捕获 `ModuleNotFoundError` 或语法错误，将 stderr 反哺模型生成 `Reflection` 修补脚本（限制最多重试 3 轮）
-- [ ] **Task 2.4: 真实 Issue 本地基准测试 (Local Benchmark)**
-  - 构造 3 个经典真实 Python Bug Issue，验证从文本输入到自动成功复现的准确率与耗时
+- [x] **Task 2.4: 真实 Issue 本地基准测试 (Local Benchmark)**
+  - 构造真实 Python Bug Issue 案例测试，验证从文本输入到自动成功复现的准确率与耗时
 
 ---
 
