@@ -1,4 +1,4 @@
-import type { Probot } from "probot";
+import { run, type Probot } from "probot";
 import type { Router } from "express";
 import { handleIssueCommentCreated } from "./handlers/comment.js";
 import { startReproWorker } from "./queue/repro-worker.js";
@@ -30,4 +30,14 @@ export default function repoClawApp(app: Probot, { getRouter }: ProbotOptions = 
     // Probot 提供 app.auth() 获取已认证的全局 Octokit
     return app.auth() as any;
   });
+}
+
+// 当直接执行该文件时 (node dist/index.js)，自动启动 Probot Server
+const isDirectRun = process.argv[1] && (
+  process.argv[1].replace(/\\/g, "/").endsWith("dist/index.js") ||
+  process.argv[1].replace(/\\/g, "/").endsWith("src/index.ts")
+);
+
+if (isDirectRun) {
+  run(repoClawApp);
 }

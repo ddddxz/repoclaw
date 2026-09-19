@@ -12,6 +12,7 @@
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/docker-zero--trust%20sandbox-2496ED.svg)](https://www.docker.com/)
 [![GitHub App](https://img.shields.io/badge/github--app-Probot%2013-black.svg)](https://probot.github.io/)
+[![Install RepoClaw](https://img.shields.io/badge/Install%20on-GitHub%20App-2ea44f?style=flat&logo=github)](https://github.com/apps/repoclaw-app)
 [![Web Dashboard](https://img.shields.io/badge/dashboard-live%20observability-9d4edd.svg)](http://localhost:3000/dashboard)
 
 **English** | [简体中文](./README.md)

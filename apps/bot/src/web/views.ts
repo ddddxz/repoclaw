@@ -101,7 +101,7 @@ export function renderLandingPage(): string {
             <span>进入任务审计看板</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
           </a>
-          <a href="https://github.com/settings/apps" target="_blank" class="px-6 py-3.5 rounded-xl glass-panel hover:bg-white/10 text-white font-medium transition-all flex items-center gap-2">
+          <a href="https://github.com/apps/repoclaw-app" target="_blank" class="px-6 py-3.5 rounded-xl glass-panel hover:bg-white/10 text-white font-medium transition-all flex items-center gap-2 border border-cyan-500/30 shadow-lg shadow-cyan-500/10">
             <span>⚡ 安装至 GitHub 仓库</span>
           </a>
         </div>
