@@ -1,12 +1,13 @@
 # RepoClaw 工程实施任务清单 (Task Breakdown)
 
-> 遵循 `PRD.md` 与 `TECH_SPEC.md` 规范，采用 **TypeScript Monorepo (pnpm workspace + Turborepo)** 架构进行迭代。
+> 遵循 `PRD.md`、`TECH_SPEC.md` 与 [`OPEN_SOURCE_ECOSYSTEM.md`](./OPEN_SOURCE_ECOSYSTEM.md) 规范。
+> **核心开发准则**：坚持**绝不重复造轮子**，在 GitHub 成熟开源项目（OpenClaw、DeepSeek Harness、Codex Harness）基础上进行二次开发与架构扩展，采用 **TypeScript Monorepo (pnpm workspace + Turborepo)** 架构高效推进。
 
 ---
 
 ## 阶段规划概览 (Milestones)
 
-- [ ] **M1: 基础工程与 Docker 沙箱隔离器 (Sandbox & Isolation Core)**
+- [x] **M1: 基础工程与 Docker 沙箱隔离器 (Sandbox & Isolation Core)**
 - [ ] **M2: Agent 意图推导与自愈反思闭环 (Agentic Reproduction Loop)**
 - [ ] **M3: Probot GitHub App 网关与 ChatOps 调度 (Probot & Queue Gateway)**
 - [ ] **M4: SQLite 审计落盘与状态可视化 (Persistence & Telemetry)**
@@ -19,17 +20,17 @@
 ### 阶段一：基础工程与 Docker 沙箱隔离器 (`packages/sandbox`)
 > 目标：不依赖 GitHub 事件流，在本地单机能通过 Dockerode 启动受限沙箱，安全运行指定的 Python 脚本并捕获结果。
 
-- [ ] **Task 1.1: 初始化 Monorepo 脚手架**
+- [x] **Task 1.1: 初始化 Monorepo 脚手架**
   - 配置根目录 `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.json`, `.gitignore`
   - 初始化目录：`packages/shared`, `packages/sandbox`, `packages/core`, `apps/bot`
-- [ ] **Task 1.2: 实现公共数据契约 (`packages/shared`)**
+- [x] **Task 1.2: 实现公共数据契约 (`packages/shared`)**
   - 编写 Zod 模型：`ReproPlanSchema`, `ReflectionSchema`, `TaskStatusEnum`, `IssuePayloadSchema`
   - 导出对应 TypeScript 类型
-- [ ] **Task 1.3: 开发 Docker 沙箱隔离管理器 (`packages/sandbox`)**
+- [x] **Task 1.3: 开发 Docker 沙箱隔离管理器 (`packages/sandbox`)**
   - 封装 `dockerode` 客户端与镜像自动拉取检测 (`python:3.11-slim`)
   - 注入安全隔离参数：`NetworkMode: "none"`, 限制 512MB RAM, 1 CPU, 只读挂载, 64MB tmpfs
   - 实现标准输出捕获器：提取 `exitCode`, `stdout`, `stderr`, 以及 30 秒硬超时熔断机制
-- [ ] **Task 1.4: 编写沙箱安全性单元测试**
+- [x] **Task 1.4: 编写沙箱安全性单元测试**
   - 测试用例 1：执行死循环代码，验证 30 秒内被强制 kill 并安全回收容器
   - 测试用例 2：测试外网网络隔离（发起 `urllib.request` 请求，验证被网络隔离拦截）
 

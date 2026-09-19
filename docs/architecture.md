@@ -67,7 +67,7 @@ flowchart TD
         GitHubPlatform["GitHub API & Webhook"]
     end
 
-    subgraph Gateway ["接入与路由层 (Gateway Layer)"]
+    subgraph Gateway ["接入与路由层 (Gateway Layer ◄ 吸收 OpenClaw 网关架构)"]
         ProbotApp["Probot GitHub App 网关"]
         SignatureGuard["Webhook 签名鉴权与防重放 (HMAC-SHA256)"]
         EventRouter["ChatOps 事件路由器 (issue_comment.created 过滤与指令匹配)"]
@@ -79,7 +79,7 @@ flowchart TD
         RateLimiter["租户与仓库级并发限流器 (Rate Limiter)"]
     end
 
-    subgraph AgentCore ["Agent 推理与反思核心 (Agent Core)"]
+    subgraph AgentCore ["Agent 推理与反思核心 (Agent Core ◄ 吸收 DeepSeek Harness 架构)"]
         WorkerScheduler["任务调度 Worker (TypeScript)"]
         PromptEngine["Prompt 模板与上下文抽取引擎"]
         ZodValidator["Zod 强类型校验与结构化解析"]
@@ -87,7 +87,7 @@ flowchart TD
         ReflectionController["自愈反思控制器 (Max 3 Loops)"]
     end
 
-    subgraph SandboxPool ["安全隔离沙箱池 (Sandbox Execution Pool)"]
+    subgraph SandboxPool ["安全隔离沙箱池 (Sandbox Execution Pool ◄ 吸收 Codex Harness 熔断机制)"]
         DockerodeMgr["Dockerode 容器生命周期管理器"]
         cgroupsGuard["cgroups 资源熔断 (512MB RAM, 1 CPU, 30s Timeout)"]
         NetworkIsolated["网络隔离策略 (--network none)"]

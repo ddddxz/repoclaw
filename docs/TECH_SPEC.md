@@ -19,6 +19,16 @@
 | **数据校验与 Schema** | **Zod 3.x** | 运行时与编译时类型双重对齐，大模型输出 100% 结构化 |
 | **容器沙箱管理** | **Dockerode 4.x** | 基于 Node.js Promise 的 Docker Engine API 封装 |
 
+### 1.2 开源标杆项目二次开发与技术复用裁定 (Open Source Reuse Matrix)
+
+> 详细深度调研见 [`docs/OPEN_SOURCE_ECOSYSTEM.md`](./OPEN_SOURCE_ECOSYSTEM.md)。全工程遵循“**绝不重复造轮子，基于成熟开源项目二开**”原则：
+
+| 模块与定位 | 上游二次开发参考标杆 | 核心技术复用点与二开收益 |
+| :--- | :--- | :--- |
+| **`apps/bot`**<br>ChatOps 网关与调度 | **OpenClaw**<br>(`openclaw/openclaw`) | 复用其经过工业验证的 ChatOps 消息网关设计、事件分发路由与异步 Immediate ACK 模式 |
+| **`packages/core`**<br>Agent 推理与反思 | **DeepSeek Harness**<br>(`@deepseek-ai/dsh`) | 复用其 "Everything is a Plugin" 架构、Agentic 自愈反思循环与 Write-only 审计日志 |
+| **`packages/sandbox`**<br>Docker 隔离沙箱 | **Codex Harness**<br>(`@ai-sdk/harness-codex`) | 复用其标准代码沙箱受限熔断机制、工业级 Traceback 栈帧抽取器与双模驱动体系 |
+
 ---
 
 ## 2. Monorepo 工程目录结构规划 (Repository Structure)
@@ -36,6 +46,7 @@ repoclaw/
 │   ├── PRD.md
 │   ├── TECH_SPEC.md
 │   ├── architecture.md
+│   ├── OPEN_SOURCE_ECOSYSTEM.md  # 开源二次开发与技术复用指南
 │   └── task.md
 ├── packages/
 │   ├── shared/                # 公共契约与类型定义

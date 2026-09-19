@@ -17,7 +17,8 @@
 1. [产品需求文档 (PRD)](./docs/PRD.md)：阐述产品背景痛点、核心价值定位、端到端用户流（User Flow）、功能性需求（FR-1 ~ FR-4）与非功能性需求（NFR）。
 2. [技术架构与规范设计书 (TECH_SPEC)](./docs/TECH_SPEC.md)：定义技术选型矩阵、Monorepo 目录划分、Zod 数据契约、Dockerode 沙箱安全硬配置、SQLite 审计持久化以及自愈状态机。
 3. [系统架构与设计说明书 (architecture)](./docs/architecture.md)：包含完整 Mermaid 系统用例图、系统分层架构图、ChatOps 端到端执行时序流程图以及沙箱防逃逸隔离机制。
-4. [工程实施任务清单 (task)](./docs/task.md)：从 M1 到 M5 的细粒度工程实施路线图与任务分解（脚手架、沙箱隔离器、Agent 核心、Probot 网关与开源发布）。
+4. [开源生态集成与二次开发架构指南 (OPEN_SOURCE_ECOSYSTEM)](./docs/OPEN_SOURCE_ECOSYSTEM.md)：深入剖析 OpenClaw、DeepSeek Harness、Codex Harness 标杆开源项目，确立“绝不重复造轮子”的二开技术路线。
+5. [工程实施任务清单 (task)](./docs/task.md)：从 M1 到 M5 的细粒度工程实施路线图与任务分解（脚手架、沙箱隔离器、Agent 核心、Probot 网关与开源发布）。
 
 ---
 
