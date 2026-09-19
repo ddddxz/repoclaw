@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./apps/bot/public/images/logo.jpg" width="120" alt="RepoClaw Logo" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,242,254,0.3);" />
+
 # 🐾 RepoClaw
 
 **面向全球 GitHub 维护者的自主 Bug 复现与最小用例合成数字维护者**  
@@ -10,6 +12,7 @@
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/docker-zero--trust%20sandbox-2496ED.svg)](https://www.docker.com/)
 [![GitHub App](https://img.shields.io/badge/github--app-Probot%2013-black.svg)](https://probot.github.io/)
+[![Web Dashboard](https://img.shields.io/badge/dashboard-live%20observability-9d4edd.svg)](http://localhost:3000/dashboard)
 
 [English](./README.en.md) | **简体中文**
 
@@ -119,6 +122,18 @@ flowchart TD
     Octokit --> Done[回帖最小用例 + 打标 reproduced + 贴 🚀]
     Consumer --> DB[(SQLite + Drizzle ORM 审计持久化)]
 ```
+
+---
+
+## 🌐 内置开发者官网与实时任务审计看板 (Web Dashboard)
+
+除了 GitHub 原生评论区的 ChatOps 交互外，RepoClaw 原生内置了极具未来科技感与暗黑磨砂玻璃美学的 Web 站点，由 Probot Express 服务同端口原生托管，零额外运维开销：
+
+- **开发者门户官网 (`http://localhost:3000/`)**：包含品牌主视觉、核心架构全景图、ChatOps 交互指引与“⚡ Install to GitHub”一键安装按钮；
+- **实时任务审计看板 (`http://localhost:3000/dashboard`)**：
+  - **4 大全局 KPI**：总任务数、复现成功率（Verified Rate）、平均耗时、累计自愈反思轮次；
+  - **实时流水表格**：支持按仓库名动态筛选，展示当前运行状态色彩徽章；
+  - **交互式详情弹窗**：点击任务即可查看**最小复现脚本（含一键复制）**、**真实 Traceback 堆栈**以及**状态机全生命周期审计流水时间线**。
 
 ---
 

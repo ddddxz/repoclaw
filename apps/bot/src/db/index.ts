@@ -132,6 +132,57 @@ export class ReproTaskRepository {
   }
 
   /**
+   * 获取全局 KPI 聚合统计数据 (用于 Web 看板大屏)
+   */
+  async getStats(): Promise<{
+    total: number;
+    verified: number;
+    unverified: number;
+    failed: number;
+    running: number;
+    pending: number;
+    successRate: number;
+    avgDurationMs: number;
+    totalRetries: number;
+  }> {
+    const all = await this.db.select().from(reproTasks);
+    const total = all.length;
+    let verified = 0;
+    let unverified = 0;
+    let failed = 0;
+    let running = 0;
+    let pending = 0;
+    let totalDuration = 0;
+    let totalRetries = 0;
+
+    for (const t of all) {
+      if (t.status === "VERIFIED") verified++;
+      else if (t.status === "UNVERIFIED") unverified++;
+      else if (t.status === "FAILED") failed++;
+      else if (t.status === "RUNNING") running++;
+      else if (t.status === "PENDING") pending++;
+
+      totalDuration += t.durationMs || 0;
+      totalRetries += t.retryCount || 0;
+    }
+
+    const avgDurationMs = total > 0 ? Math.round(totalDuration / total) : 0;
+    const successRate = total > 0 ? Math.round((verified / total) * 100) : 0;
+
+    return {
+      total,
+      verified,
+      unverified,
+      failed,
+      running,
+      pending,
+      successRate,
+      avgDurationMs,
+      totalRetries,
+    };
+  }
+
+  /**
    * 关闭数据库连接
    */
   async close(): Promise<void> {

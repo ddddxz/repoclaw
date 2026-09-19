@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./apps/bot/public/images/logo.jpg" width="120" alt="RepoClaw Logo" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,242,254,0.3);" />
+
 # 🐾 RepoClaw
 
 **Autonomous GitHub Issue Reproducer & Minimal Test Synthesizer**  
@@ -10,6 +12,7 @@
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/docker-zero--trust%20sandbox-2496ED.svg)](https://www.docker.com/)
 [![GitHub App](https://img.shields.io/badge/github--app-Probot%2013-black.svg)](https://probot.github.io/)
+[![Web Dashboard](https://img.shields.io/badge/dashboard-live%20observability-9d4edd.svg)](http://localhost:3000/dashboard)
 
 **English** | [简体中文](./README.md)
 
@@ -116,6 +119,18 @@ flowchart TD
     Octokit --> Done[Comment script + label reproduced + add 🚀]
     Consumer --> DB[(SQLite + Drizzle ORM Audit Log)]
 ```
+
+---
+
+## 🌐 Built-in Web Portal & Live Observability Dashboard
+
+Beyond the native ChatOps interface in GitHub issue comments, RepoClaw natively hosts a high-tech dark-themed web portal directly on port 3000 via Probot Express:
+
+- **Developer Landing Portal (`http://localhost:3000/`)**: Showcases architectural diagrams, zero-trust sandbox concepts, and a one-click "⚡ Install to GitHub" button.
+- **Live Task Dashboard (`http://localhost:3000/dashboard`)**:
+  - **4 Global KPIs**: Total reproduction tasks, Verified rate (%), average duration, and cumulative reflection iterations.
+  - **Live Stream Table**: Real-time filtering by repository with glowing status badges (`VERIFIED`, `UNVERIFIED`, `FAILED`).
+  - **Interactive Detail Drawer**: Expand any task to inspect its **minimal reproduction script (with 1-click copy)**, **captured raw traceback**, and the **full lifecycle audit trail**.
 
 ---
 

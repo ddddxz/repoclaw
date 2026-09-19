@@ -138,4 +138,42 @@ describe("Milestone 4: ReproTaskRepository SQLite 审计持久化测试", () => 
     const allTasks = await repo.listTasks();
     expect(allTasks).toHaveLength(2);
   });
+
+  it("应当能够准确计算看板统计指标 (getStats)", async () => {
+    const now = new Date().toISOString();
+
+    await repo.createTask({
+      id: "stat-1",
+      repoFullName: "owner/repo1",
+      issueNumber: 1,
+      commentId: 10,
+      triggerUser: "alice",
+      status: "VERIFIED",
+      durationMs: 3000,
+      retryCount: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await repo.createTask({
+      id: "stat-2",
+      repoFullName: "owner/repo1",
+      issueNumber: 2,
+      commentId: 11,
+      triggerUser: "bob",
+      status: "UNVERIFIED",
+      durationMs: 5000,
+      retryCount: 3,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const stats = await repo.getStats();
+    expect(stats.total).toBe(2);
+    expect(stats.verified).toBe(1);
+    expect(stats.unverified).toBe(1);
+    expect(stats.successRate).toBe(50);
+    expect(stats.avgDurationMs).toBe(4000);
+    expect(stats.totalRetries).toBe(4);
+  });
 });
