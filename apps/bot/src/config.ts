@@ -1,0 +1,15 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
+export const config = {
+  appId: process.env.APP_ID || "123456",
+  privateKey: process.env.PRIVATE_KEY || "mock-private-key",
+  webhookSecret: process.env.WEBHOOK_SECRET || "development-secret",
+  redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
+  port: parseInt(process.env.PORT || "3000", 10),
+  modelName: process.env.MODEL_NAME || "deepseek-chat",
+  deepseekApiKey: process.env.DEEPSEEK_API_KEY || "",
+  maxRetries: parseInt(process.env.MAX_RETRIES || "3", 10),
+  sandboxTimeoutMs: parseInt(process.env.SANDBOX_TIMEOUT_MS || "30000", 10),
+};

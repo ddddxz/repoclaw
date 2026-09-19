@@ -9,7 +9,7 @@
 
 - [x] **M1: 基础工程与 Docker 沙箱隔离器 (Sandbox & Isolation Core)**
 - [x] **M2: Agent 意图推导与自愈反思闭环 (Agentic Reproduction Loop)**
-- [ ] **M3: Probot GitHub App 网关与 ChatOps 调度 (Probot & Queue Gateway)**
+- [x] **M3: Probot GitHub App 网关与 ChatOps 调度 (Probot & Queue Gateway)**
 - [ ] **M4: SQLite 审计落盘与状态可视化 (Persistence & Telemetry)**
 - [ ] **M5: 生产容器化编排、录制 Demo 与开源发布 (Release & Open Source)**
 
@@ -56,19 +56,19 @@
 ### 阶段三：Probot GitHub App 网关与 ChatOps 调度 (`apps/bot`)
 > 目标：将核心引擎接驳到真实 GitHub 仓库中，支持维护者评论 `@repoclaw repro` 触发。
 
-- [ ] **Task 3.1: 初始化 Probot 应用程序**
+- [x] **Task 3.1: 初始化 Probot 应用程序**
   - 配置 GitHub App 密钥、App ID 与 Webhook Secret
   - 监听 `issue_comment.created` 事件
-- [ ] **Task 3.2: 权限与意图过滤网关**
+- [x] **Task 3.2: 权限与意图过滤网关**
   - 校验评论内容是否包含 `@repoclaw repro`（正则不区分大小写）
   - 校验评论者 `author_association`（必须为 OWNER / MEMBER / COLLABORATOR）
   - 鉴权通过后立即调用 Octokit 添加反应表情 👀 (Eyes)
-- [ ] **Task 3.3: 引入 BullMQ + Redis 异步削峰**
+- [x] **Task 3.3: 引入 BullMQ + Redis 异步削峰**
   - 配置 Redis 客户端与 BullMQ 任务队列，实现任务入队并返回 202 Accepted
   - 实现 Worker 消费线程，调用 `packages/core` 执行复现流水线
-- [ ] **Task 3.4: 结构化评论回写与标签流转**
-  - 复现成功：调用 Octokit 为 Issue 添加 `reproduced` 标签，回帖精美的折叠代码块与真实堆栈
-  - 复现未果：发表友好说明，展示已尝试的脚本，引导提报者补充环境参数
+- [x] **Task 3.4: 结构化评论回写与标签流转**
+  - 复现成功：调用 Octokit 为 Issue 添加 `reproduced` 标签，回帖精美的折叠代码块与真实堆栈，将表情更新为 🚀
+  - 复现未果：发表友好说明，展示已尝试的脚本，引导提报者补充环境参数，将表情更新为 😕
 
 ---
 
