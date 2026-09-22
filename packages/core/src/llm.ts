@@ -67,6 +67,7 @@ export class VercelAILlmProvider implements ILLMProvider {
     const { object } = await generateObject({
       model: this.getModel(),
       schema: ReproPlanSchema,
+      mode: "json",
       system,
       prompt,
       temperature: 0.1,
@@ -85,6 +86,7 @@ export class VercelAILlmProvider implements ILLMProvider {
     const { object } = await generateObject({
       model: this.getModel(),
       schema: ReflectionSchema,
+      mode: "json",
       system: "你是一个专业的 Python 调试专家，根据错误堆栈精准定位并修改复现测试代码。",
       prompt,
       temperature: 0.1,

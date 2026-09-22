@@ -67,6 +67,7 @@ export async function processReproJob(
     const llmProvider = deps?.llmProvider || new VercelAILlmProvider({
       modelName: config.modelName,
       apiKey: config.deepseekApiKey,
+      baseURL: config.baseURL,
     });
     const sandboxRunner = deps?.sandboxRunner || (await createSandboxRunner());
 
