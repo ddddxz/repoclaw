@@ -182,11 +182,11 @@ export class MockSandboxRunner implements ISandboxRunner {
     }
 
     // 3. 模拟异常抛出 (如 ZeroDivisionError, ValueError)
-    if (script.includes("ZeroDivisionError") || script.includes("1 / 0")) {
+    if (script.includes("ZeroDivisionError") || script.includes("1 / 0") || script.includes("divide_numbers")) {
       return {
         exitCode: 1,
         stdout: "",
-        stderr: `Traceback (most recent call last):\n  File "/scratch/repro.py", line 12, in <module>\n    result = 1 / 0\nZeroDivisionError: division by zero`,
+        stderr: `Traceback (most recent call last):\n  File "/scratch/repro.py", line 12, in <module>\n    result = divide_numbers(10, 0)\n  File "/workspace/math_lib/calculator.py", line 14, in divide_numbers\n    return a / b\nZeroDivisionError: division by zero`,
         durationMs: 82,
         timedOut: false,
         killed: false,

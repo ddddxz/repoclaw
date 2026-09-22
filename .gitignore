@@ -21,6 +21,7 @@ private-key.pem
 *.db
 *.db-journal
 *.log
+dump.rdb
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

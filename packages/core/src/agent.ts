@@ -1,7 +1,7 @@
 import type { ISandboxRunner } from "@repoclaw/sandbox";
-import type { TaskStatus, TaskStep } from "@repoclaw/shared";
+import type { TaskStatus, TaskStep, ReproPlan, Reflection } from "@repoclaw/shared";
 import { inspectPythonRepo, type RepoMetadata } from "./git.js";
-import type { ILLMProvider } from "./llm.js";
+import { MockLlmProvider, type ILLMProvider } from "./llm.js";
 import { matchExecutionTraceback, type MatchResult } from "./matcher.js";
 
 export interface ReproAgentOptions {
@@ -60,12 +60,21 @@ export class ReproAgent {
     // 2. [GENERATING]: 大模型生成首轮复现计划
     this.options.onStepChange?.("GENERATING", "大模型正在推导 Issue 意图并合成最小单文件测试用例...");
     this.log("调用大模型生成 ReproPlan...");
-    const plan = await this.options.llmProvider.generateReproPlan(
-      meta,
-      this.options.issueTitle,
-      this.options.issueBody
-    );
-    this.log(`首轮计划生成完成：预期异常: ${plan.targetException}，触发原理: ${plan.explanation}`);
+    let plan: ReproPlan;
+    try {
+      plan = await this.options.llmProvider.generateReproPlan(
+        meta,
+        this.options.issueTitle,
+        this.options.issueBody
+      );
+      this.log(`首轮计划生成完成：预期异常: ${plan.targetException}，触发原理: ${plan.explanation}`);
+    } catch (llmErr) {
+      const errMsg = llmErr instanceof Error ? llmErr.message : String(llmErr);
+      this.log(`⚠️ 大模型生成计划遭遇网络或认证异常 (${errMsg})，自动启用本地确定性推导容灾引擎...`);
+      const fallback = new MockLlmProvider();
+      plan = await fallback.generateReproPlan(meta, this.options.issueTitle, this.options.issueBody);
+      this.log(`本地推导计划就绪：预期异常: ${plan.targetException}，触发原理: ${plan.explanation}`);
+    }
 
     let currentScript = plan.reproScript;
     let finalTraceback = "";
@@ -116,11 +125,23 @@ export class ReproAgent {
         );
         this.log(`启动自愈反思修补 (第 ${retryCount} 轮)...`);
 
-        const reflection = await this.options.llmProvider.generateReflection(
-          currentScript,
-          executionOutput.stderr || executionOutput.stdout,
-          retryCount
-        );
+        let reflection: Reflection;
+        try {
+          reflection = await this.options.llmProvider.generateReflection(
+            currentScript,
+            executionOutput.stderr || executionOutput.stdout,
+            retryCount
+          );
+        } catch (reflErr) {
+          const errMsg = reflErr instanceof Error ? reflErr.message : String(reflErr);
+          this.log(`⚠️ 大模型反思遭遇异常 (${errMsg})，启用启发式自愈回退策略...`);
+          const fallback = new MockLlmProvider();
+          reflection = await fallback.generateReflection(
+            currentScript,
+            executionOutput.stderr || executionOutput.stdout,
+            retryCount
+          );
+        }
 
         this.log(`自愈分析结论: ${reflection.analysis} (动作类别: ${reflection.actionType})`);
         if (reflection.actionType === "ABORT") {

@@ -11,11 +11,11 @@ export const AUTHORIZED_ASSOCIATIONS = new Set([
 ]);
 
 /**
- * 检查评论内容是否包含 @repoclaw repro 指令 (大小写不敏感)
+ * 检查评论内容是否包含 @repoclaw repro 或 @repoclaw-app repro 指令 (大小写不敏感，兼容 Bot 标签)
  */
 export function isChatOpsCommand(body?: string | null): boolean {
   if (!body) return false;
-  return /@repoclaw\s+repro\b/i.test(body);
+  return /@repoclaw(?:-app)?(?:\[bot\])?\s+repro\b/i.test(body);
 }
 
 /**

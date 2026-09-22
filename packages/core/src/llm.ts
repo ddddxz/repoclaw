@@ -126,10 +126,15 @@ export class MockLlmProvider implements ILLMProvider {
       targetException = "KeyError";
     }
 
+    let reproScript = `import sys\nsys.path.insert(0, '/workspace')\nresult = 1 / 0\n`;
+    if (issueTitle.includes("divide_numbers") || issueBody.includes("divide_numbers")) {
+      reproScript = `import sys\nsys.path.insert(0, '/workspace')\nfrom math_lib.calculator import divide_numbers\nresult = divide_numbers(10, 0)\n`;
+    }
+
     return {
       targetException,
       errorKeywords: ["division by zero", "line"],
-      reproScript: `import sys\nsys.path.insert(0, '/workspace')\nresult = 1 / 0\n`,
+      reproScript,
       explanation: `通过传入除数为0触发 ${targetException}`,
     };
   }

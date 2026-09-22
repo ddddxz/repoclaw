@@ -7,9 +7,12 @@ import {
 
 describe("@repoclaw/bot ChatOps 网关与权限过滤器测试", () => {
   describe("1. ChatOps 指令匹配测试", () => {
-    it("应正确识别标准 @repoclaw repro 触发指令", () => {
+    it("应正确识别标准 @repoclaw repro 与 @repoclaw-app repro 触发指令", () => {
       expect(isChatOpsCommand("@repoclaw repro")).toBe(true);
+      expect(isChatOpsCommand("@repoclaw-app repro")).toBe(true);
+      expect(isChatOpsCommand("@repoclaw-app[bot] repro")).toBe(true);
       expect(isChatOpsCommand("@repoclaw repro please help verify")).toBe(true);
+      expect(isChatOpsCommand("@repoclaw-app repro 请协助复现")).toBe(true);
       expect(isChatOpsCommand("Hey @repoclaw repro this bug")).toBe(true);
     });
 
