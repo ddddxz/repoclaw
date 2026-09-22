@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Autonomous Bug Reproducer & Test Synthesizer for GitHub Repositories",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",

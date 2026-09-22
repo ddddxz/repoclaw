@@ -36,6 +36,7 @@ export interface RawCommentContext {
   commentId: number;
   commentSender: string;
   authorAssociation: string;
+  installationId?: number;
 }
 
 /**
@@ -52,6 +53,7 @@ export function buildIssuePayload(raw: RawCommentContext): IssuePayload {
     commentId: raw.commentId,
     triggerUser: raw.commentSender,
     authorAssociation: raw.authorAssociation.toUpperCase() as "OWNER" | "MEMBER" | "COLLABORATOR",
+    installationId: raw.installationId,
   };
 
   return IssuePayloadSchema.parse(payload);

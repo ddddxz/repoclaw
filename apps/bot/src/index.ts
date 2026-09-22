@@ -26,9 +26,9 @@ export default function repoClawApp(app: Probot, { getRouter }: ProbotOptions = 
   app.on("issue_comment.created", handleIssueCommentCreated);
 
   // 3. 启动 BullMQ 任务消费 Worker 线程
-  startReproWorker(() => {
-    // Probot 提供 app.auth() 获取已认证的全局 Octokit
-    return app.auth() as any;
+  startReproWorker(async (installationId?: number) => {
+    // Probot 提供 app.auth(installationId) 获取该安装实例已认证的全局 Octokit
+    return (await app.auth(installationId)) as any;
   });
 }
 

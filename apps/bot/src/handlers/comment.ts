@@ -5,6 +5,7 @@ import {
   isChatOpsCommand,
 } from "../gateway/filter.js";
 import { enqueueReproTask } from "../queue/repro-queue.js";
+import { processReproJob } from "../queue/repro-worker.js";
 import { getDatabase, type ReproTaskRepository } from "../db/index.js";
 
 /**
@@ -67,6 +68,7 @@ export async function handleIssueCommentCreated(
     commentId: comment.id,
     commentSender: comment.user.login,
     authorAssociation,
+    installationId: context.payload.installation?.id,
   });
 
   // 6. 审计持久化：写入任务初始记录与审计流水
@@ -94,7 +96,22 @@ export async function handleIssueCommentCreated(
     context.log.warn(`[RepoClaw DB Warning]: 记录初始任务失败: ${dbErr}`);
   }
 
-  // 7. 入队 BullMQ 削峰
-  const taskId = await enqueueReproTask(payload);
-  context.log.info(`[RepoClaw Gateway]: 任务已成功入队，Task ID: ${taskId}`);
+  // 7. 入队 BullMQ 削峰 (若遇到 Redis 连接异常则优雅降级为直连异步消费，确保 100% 任务执行交付)
+  try {
+    const taskId = await enqueueReproTask(payload);
+    context.log.info(`[RepoClaw Gateway]: 任务已成功入队 BullMQ，Task ID: ${taskId}`);
+  } catch (queueErr) {
+    context.log.warn(`[RepoClaw Gateway]: BullMQ 队列入队受阻，启用本地异步降级管道: ${queueErr}`);
+    const jobLike: any = {
+      data: payload,
+      updateProgress: (prog: any) => {
+        context.log.info(`[RepoClaw Progress]: ${JSON.stringify(prog)}`);
+      },
+    };
+    processReproJob(jobLike, {
+      octokit: context.octokit as any,
+    }).catch((execErr) => {
+      context.log.error(`[RepoClaw Fallback Execution Error]: ${execErr}`);
+    });
+  }
 }

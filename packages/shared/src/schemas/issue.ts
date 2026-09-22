@@ -40,6 +40,7 @@ export const IssuePayloadSchema = z.object({
   commentId: z.number().int().positive().describe("触发指令的评论 ID"),
   triggerUser: z.string().describe("发起 ChatOps 指令的维护者用户名"),
   authorAssociation: z.enum(["OWNER", "MEMBER", "COLLABORATOR"]).describe("触发者权限角色"),
+  installationId: z.number().int().positive().optional().describe("GitHub App 安装实例 ID"),
 });
 
 export type IssuePayload = z.infer<typeof IssuePayloadSchema>;

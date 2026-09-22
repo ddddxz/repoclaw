@@ -184,7 +184,7 @@ export async function processReproJob(
  * 创建并启动 BullMQ 消费 Worker 进程
  */
 export function startReproWorker(
-  getOctokitForApp: () => OctokitClient,
+  getOctokitForApp: (installationId?: number) => Promise<OctokitClient> | OctokitClient,
   customConnection?: Redis
 ): Worker<IssuePayload> {
   const connection = customConnection || getRedisClient();
@@ -192,7 +192,7 @@ export function startReproWorker(
   const worker = new Worker<IssuePayload>(
     QUEUE_NAME,
     async (job) => {
-      const octokit = getOctokitForApp();
+      const octokit = await getOctokitForApp(job.data.installationId);
       return processReproJob(job, { octokit });
     },
     {
@@ -200,6 +200,10 @@ export function startReproWorker(
       concurrency: 2, // 单台实例并发 2 个沙箱执行
     }
   );
+
+  worker.on("error", (err) => {
+    console.warn(`[RepoClaw Worker Warning]: Redis 连接异常 (若无本地 Redis 将自动启用直连降级): ${err.message}`);
+  });
 
   worker.on("completed", (job) => {
     console.log(`[RepoClaw Worker]: Job ${job.id} for ${job.data.repoFullName}#${job.data.issueNumber} completed!`);

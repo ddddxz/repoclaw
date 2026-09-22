@@ -28,6 +28,7 @@
     "express": "^5.2.1",
     "ioredis": "^5.4.2",
     "probot": "^13.4.1",
+    "smee-client": "^5.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
