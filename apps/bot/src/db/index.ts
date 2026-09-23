@@ -81,12 +81,15 @@ export class ReproTaskRepository {
     message: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    await this.db.insert(taskAuditLogs).values({
-      taskId,
-      step,
-      message,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-      createdAt: new Date().toISOString(),
+    await this.client.execute({
+      sql: `INSERT INTO task_audit_logs (task_id, step, message, metadata, created_at) VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        taskId,
+        step,
+        message,
+        metadata ? JSON.stringify(metadata) : null,
+        new Date().toISOString(),
+      ],
     });
   }
 

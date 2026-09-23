@@ -99,7 +99,7 @@ export async function processReproJob(
       const octokit = deps.octokit;
 
       if (db) {
-        await db.recordAuditLog(taskId, "GITHUB_NOTIFY", "开始回写 GitHub 评论与标签");
+        await db.recordAuditLog(taskId, "GITHUB_NOTIFY", "开始回写 GitHub 评论与标签").catch(() => {});
       }
 
       // 5.1 回复结构化 Markdown 报告

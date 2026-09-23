@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createClient } from "@libsql/client";
 import * as coreModule from "@repoclaw/core";
 import { MockLlmProvider } from "@repoclaw/core";
@@ -8,6 +8,19 @@ import { processReproJob } from "../src/queue/repro-worker.js";
 import { ReproTaskRepository } from "../src/db/index.js";
 
 describe("@repoclaw/bot Worker 任务消费与 GitHub 结果回写测试", () => {
+  let client: any;
+  let repo: ReproTaskRepository;
+
+  beforeEach(async () => {
+    client = createClient({ url: ":memory:" });
+    repo = new ReproTaskRepository(client);
+    await repo.initSchema();
+  });
+
+  afterEach(async () => {
+    await repo.close();
+  });
+
   it("当复现成功时，应自动回帖 Markdown、打标 [reproduced] 并贴 🚀", async () => {
     // Mock 浅克隆行为
     vi.spyOn(coreModule, "shallowCloneRepo").mockResolvedValue({ durationMs: 120 });
@@ -56,6 +69,7 @@ describe("@repoclaw/bot Worker 任务消费与 GitHub 结果回写测试", () =>
       octokit: mockOctokit,
       llmProvider: mockLlm,
       sandboxRunner: mockSandbox,
+      db: repo,
     });
 
     // 1. 验证任务执行返回成功
@@ -131,6 +145,7 @@ describe("@repoclaw/bot Worker 任务消费与 GitHub 结果回写测试", () =>
       octokit: mockOctokit,
       llmProvider: mockLlm,
       sandboxRunner: mockSandbox,
+      db: repo,
     });
 
     expect(jobResult.status).toBe("UNVERIFIED");
