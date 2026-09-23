@@ -8,10 +8,12 @@
 *Autonomous GitHub Issue Reproducer & Minimal Test Synthesizer*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/ddddxz/repoclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/ddddxz/repoclaw/actions/workflows/ci.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/ddddxz/repoclaw?style=social)](https://github.com/ddddxz/repoclaw)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ddddxz/repoclaw/pulls)
 [![Node.js](https://img.shields.io/badge/node.js-22%20LTS-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/docker-zero--trust%20sandbox-2496ED.svg)](https://www.docker.com/)
-[![GitHub App](https://img.shields.io/badge/github--app-Probot%2013-black.svg)](https://probot.github.io/)
 [![Install RepoClaw](https://img.shields.io/badge/Install%20on-GitHub%20App-2ea44f?style=flat&logo=github)](https://github.com/apps/repoclaw-app)
 [![Web Dashboard](https://img.shields.io/badge/dashboard-live%20observability-9d4edd.svg)](http://localhost:3000/dashboard)
 
@@ -88,7 +90,7 @@ ZeroDivisionError: division by zero
 </details>
 
 ---
-*由 [RepoClaw](https://github.com/your-org/repoclaw) 自动化安全沙箱自主合成与验证*
+*由 [RepoClaw](https://github.com/ddddxz/repoclaw) 自动化安全沙箱自主合成与验证*
 </details>
 
 ---
@@ -160,8 +162,9 @@ RepoClaw 坚定践行**开源组件最大化复用原则**，拒绝闭门造车�
 1. **绝对网络隔离**：容器指定 `NetworkMode: "none"`，彻底杜绝数据外逸、木马下载或 SSRF 攻击；
 2. **代码只读挂载**：目标仓库代码以 `:ro` (Read-Only) 挂载，容器绝无法篡改原工程代码；
 3. **独立运行目录**：复现脚本写入 64MB 临时 `tmpfs` 内存卷中，容器销毁即彻底清除；
-4. **硬性超时强杀**：沙箱限定 30 秒硬超时，一旦超时通过内核 `SIGKILL (Kill -9)` 强制终止；
-5. **降权用户运行**：容器默认以 `User: "1000:1000"` 非 root 身份启动，彻底防御容器逃逸。
+4. **防御 Fork 炸弹**：严格限制 `PidsLimit: 64`，彻底防御恶意进程表耗尽型拒绝服务；
+5. **硬性超时强杀**：沙箱限定 30 秒硬超时，一旦超时通过内核 `SIGKILL (Kill -9)` 强制终止；
+6. **降权用户运行**：容器默认以 `User: "1000:1000"` 非 root 身份启动，彻底防御容器逃逸。
 
 ---
 
@@ -169,7 +172,7 @@ RepoClaw 坚定践行**开源组件最大化复用原则**，拒绝闭门造车�
 
 ### 1. 克隆代码与准备环境
 ```bash
-git clone https://github.com/your-org/repoclaw.git
+git clone https://github.com/ddddxz/repoclaw.git
 cd repoclaw
 
 # 复制环境变量模板
@@ -196,6 +199,7 @@ docker compose up -d
 
 服务启动后：
 - **Bot 网关**：监听在 `http://localhost:3000`；
+- **健康检查探针**：`http://localhost:3000/healthz`；
 - **Redis 队列**：监听在 `localhost:6379`；
 - **SQLite 数据文件**：持久化保存在 `./data/repoclaw.db`。
 
@@ -212,11 +216,11 @@ pnpm install
 # 2. 全量编译
 pnpm -r build
 
-# 3. 运行全工作区单元测试 (覆盖核心沙箱安全、Agent 状态机、Probot 网关与持久化)
+# 3. 运行全工作区单元测试与 E2E 测试
 pnpm -r test
 ```
 
-> **测试覆盖**：项目内置 42 项自动化测试，包括防逃逸参数校验、堆栈匹配算法、ChatOps 角色拦截、双模 Mock 沙箱与 Drizzle ORM 持久化，无需外部依赖即可 100% 离线通过。
+> **测试覆盖**：项目内置 **56 项工业级自动化测试**，包括防逃逸参数校验、Traceback 堆栈精准提取、AST 单文件用例分析、ChatOps 维护者角色鉴权、双模 Mock 沙箱与全链路 E2E 闭环验证，100% 离线通过。
 
 ---
 

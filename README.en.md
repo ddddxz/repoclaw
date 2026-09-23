@@ -8,10 +8,12 @@
 *The digital maintainer that turns ambiguous bug reports into verified, minimal test cases.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/ddddxz/repoclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/ddddxz/repoclaw/actions/workflows/ci.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/ddddxz/repoclaw?style=social)](https://github.com/ddddxz/repoclaw)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ddddxz/repoclaw/pulls)
 [![Node.js](https://img.shields.io/badge/node.js-22%20LTS-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/docker-zero--trust%20sandbox-2496ED.svg)](https://www.docker.com/)
-[![GitHub App](https://img.shields.io/badge/github--app-Probot%2013-black.svg)](https://probot.github.io/)
 [![Install RepoClaw](https://img.shields.io/badge/Install%20on-GitHub%20App-2ea44f?style=flat&logo=github)](https://github.com/apps/repoclaw-app)
 [![Web Dashboard](https://img.shields.io/badge/dashboard-live%20observability-9d4edd.svg)](http://localhost:3000/dashboard)
 
@@ -85,7 +87,7 @@ ZeroDivisionError: division by zero
 </details>
 
 ---
-*Synthesized and verified autonomously by [RepoClaw](https://github.com/your-org/repoclaw)*
+*Synthesized and verified autonomously by [RepoClaw](https://github.com/ddddxz/repoclaw)*
 </details>
 
 ---
@@ -132,6 +134,7 @@ Beyond the native ChatOps interface in GitHub issue comments, RepoClaw natively 
   - **4 Global KPIs**: Total reproduction tasks, Verified rate (%), average duration, and cumulative reflection iterations.
   - **Live Stream Table**: Real-time filtering by repository with glowing status badges (`VERIFIED`, `UNVERIFIED`, `FAILED`).
   - **Interactive Detail Drawer**: Expand any task to inspect its **minimal reproduction script (with 1-click copy)**, **captured raw traceback**, and the **full lifecycle audit trail**.
+- **Health Check Probe (`http://localhost:3000/healthz`)**: Readiness and liveness endpoint for Docker & K8s.
 
 ---
 
@@ -156,15 +159,16 @@ Executing untrusted code from GitHub issues is risky. RepoClaw employs defense-i
 1. **Air-gapped Network**: `NetworkMode: "none"` eliminates SSRF and external egress.
 2. **Read-Only Code Mount**: Target repo is mounted with `:ro`.
 3. **Ephemeral Execution**: Scripts run in 64MB memory tmpfs destroyed upon completion.
-4. **Hard Timeout**: 30-second hard kill with OS-level `SIGKILL`.
-5. **Least Privilege**: Runs as unprivileged non-root user (`User: "1000:1000"`).
+4. **Anti-Fork Bomb**: Strictly enforced `PidsLimit: 64` to prevent OS process table exhaustion.
+5. **Hard Timeout**: 30-second hard kill with OS-level `SIGKILL`.
+6. **Least Privilege**: Runs as unprivileged non-root user (`User: "1000:1000"`).
 
 ---
 
 ## 🚀 Quick Start (Docker Compose)
 
 ```bash
-git clone https://github.com/your-org/repoclaw.git
+git clone https://github.com/ddddxz/repoclaw.git
 cd repoclaw
 cp .env.example .env
 
@@ -182,7 +186,7 @@ pnpm -r build
 pnpm -r test
 ```
 
-> Includes 42 unit tests covering sandbox escape prevention, regex traceback extraction, ChatOps role authorization, and Drizzle SQLite persistence.
+> Includes **56 automated tests** (unit tests + end-to-end integration tests) covering sandbox escape prevention, regex traceback extraction, AST code analysis, ChatOps role authorization, and Drizzle SQLite persistence.
 
 ---
 
