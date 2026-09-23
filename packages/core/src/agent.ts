@@ -51,11 +51,16 @@ export class ReproAgent {
     const maxRetries = this.options.maxRetries ?? 3;
     let retryCount = 0;
 
-    // 1. [INIT/CLONING]: 探测仓库结构
-    this.options.onStepChange?.("CLONING", "正在预处理目标仓库模块与结构...");
-    this.log("正在探测目标仓库环境...");
-    const meta: RepoMetadata = await inspectPythonRepo(this.options.repoDir);
-    this.log(`目标仓库探测完成：发现模块 [${meta.packageNames.join(", ")}]，根路径: ${meta.pythonPathRelative}`);
+    // 1. [INIT/CLONING]: 探测仓库结构并进行 AST 符号抽取
+    this.options.onStepChange?.("CLONING", "正在预处理目标仓库模块与结构并分析 AST 语法树...");
+    this.log("正在探测目标仓库环境并静态提取 AST 代码骨架...");
+    const keywords = [
+      ...this.options.issueTitle.split(/[\s,:;()\[\]{}]+/),
+      ...this.options.issueBody.slice(0, 500).split(/[\s,:;()\[\]{}]+/),
+    ].filter((w) => w.length > 2);
+    const meta: RepoMetadata = await inspectPythonRepo(this.options.repoDir, keywords);
+    const outlineCount = meta.astOutlines?.length ?? 0;
+    this.log(`目标仓库探测完成：发现模块 [${meta.packageNames.join(", ")}]，已精准提取 ${outlineCount} 个模块的 AST 符号骨架`);
 
     // 2. [GENERATING]: 大模型生成首轮复现计划
     this.options.onStepChange?.("GENERATING", "大模型正在推导 Issue 意图并合成最小单文件测试用例...");

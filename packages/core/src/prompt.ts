@@ -1,10 +1,23 @@
 import type { RepoMetadata } from "./git.js";
+import { formatAstOutlineForPrompt } from "./ast.js";
 
 /**
  * 构建大模型首轮最小复现计划生成提示词
  */
 export function buildReproPlanSystemPrompt(meta: RepoMetadata): string {
   const packagesList = meta.packageNames.length > 0 ? meta.packageNames.join(", ") : "标准库或根目录下模块";
+
+  let astSection = "";
+  if (meta.astOutlines && meta.astOutlines.length > 0) {
+    const formattedStub = formatAstOutlineForPrompt(meta.astOutlines);
+    if (formattedStub.trim().length > 0) {
+      astSection = `\n\n【目标仓库核心代码符号骨架 (AST Python Stub)】:
+以下是通过静态语法树从被测代码中抽取的真实类、方法与函数签名，请严格遵循这些真实签名与参数名进行调用，严禁凭空臆造不存在的函数：
+\`\`\`python
+${formattedStub}
+\`\`\``;
+    }
+  }
 
   return `你是由 DeepMind 与开源维护者联合研发的 RepoClaw 智能复现 Agent。
 你的唯一职责：深入阅读提报的 GitHub Issue，精准推导 Bug 触发条件，合成一段【最小、单文件、零外部多余依赖】的 Python 复现脚本（repro.py）。
@@ -21,7 +34,7 @@ export function buildReproPlanSystemPrompt(meta: RepoMetadata): string {
 【代码合成原则】
 - 聚焦单一崩溃点：脚本目标是 100% 触发 Issue 报告中所描述的特定异常（TargetException）。
 - 绝不修复 Bug：你合成的是【复现测试用例】，绝不要在脚本中对 Bug 进行修复或加 try-except 掩盖。
-- 必须基于给定的 Zod Schema 输出结构化 ReproPlan。`;
+- 必须基于给定的 Zod Schema 输出结构化 ReproPlan。${astSection}`;
 }
 
 /**

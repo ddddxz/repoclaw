@@ -1,5 +1,6 @@
 export * from "../schemas/repro.js";
 export * from "../schemas/issue.js";
+export * from "./ast.js";
 
 /**
  * 沙箱受限执行结果契约 (吸收自 Codex Harness 的执行结果抽象)

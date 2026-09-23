@@ -5,6 +5,9 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+import type { AstModuleOutline } from "@repoclaw/shared";
+import { extractRepoAstOutlines } from "./ast.js";
+
 export interface RepoMetadata {
   repoDir: string;
   packageNames: string[];
@@ -12,6 +15,7 @@ export interface RepoMetadata {
   hasPyproject: boolean;
   hasSetupPy: boolean;
   entryFiles: string[];
+  astOutlines?: AstModuleOutline[];
 }
 
 /**
@@ -41,9 +45,12 @@ export async function shallowCloneRepo(
 }
 
 /**
- * 探测目标 Python 仓库代码结构与可导入包名
+ * 探测目标 Python 仓库代码结构与可导入包名，并静态抽取核心 AST 符号
  */
-export async function inspectPythonRepo(repoDir: string): Promise<RepoMetadata> {
+export async function inspectPythonRepo(
+  repoDir: string,
+  keywords?: string[]
+): Promise<RepoMetadata> {
   const entries = await fs.readdir(repoDir, { withFileTypes: true });
 
   let hasPyproject = false;
@@ -108,6 +115,14 @@ export async function inspectPythonRepo(repoDir: string): Promise<RepoMetadata> 
     }
   }
 
+  // 提取核心模块的 AST 符号大纲
+  let astOutlines: AstModuleOutline[] = [];
+  try {
+    astOutlines = await extractRepoAstOutlines(repoDir, { keywords });
+  } catch {
+    // 容错降级
+  }
+
   return {
     repoDir,
     packageNames: Array.from(new Set(packageNames)),
@@ -115,5 +130,6 @@ export async function inspectPythonRepo(repoDir: string): Promise<RepoMetadata> 
     hasPyproject,
     hasSetupPy,
     entryFiles,
+    astOutlines,
   };
 }

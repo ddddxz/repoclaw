@@ -3,3 +3,4 @@ export * from "./prompt.js";
 export * from "./llm.js";
 export * from "./matcher.js";
 export * from "./agent.js";
+export * from "./ast.js";
