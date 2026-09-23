@@ -96,31 +96,31 @@ ZeroDivisionError: division by zero
 
 ```mermaid
 flowchart TD
-    User([GitHub Maintainer]) -->|@repoclaw repro| Webhook[GitHub Webhook Gateway]
-    Webhook --> Auth{Auth: OWNER / MEMBER / COLLABORATOR}
+    User["GitHub Maintainer"] -->|"@repoclaw repro"| Webhook["GitHub Webhook Gateway"]
+    Webhook --> Auth{"Auth (OWNER / MEMBER)"}
     
-    Auth -->|Unauthorized| Deny[Block with permission warning]
-    Auth -->|Authorized| Feedback[< 1.5s Add 👀 reaction]
+    Auth -->|"Unauthorized"| Deny["Block with friendly warning"]
+    Auth -->|"Authorized"| Feedback["Immediate 👀 Reaction (under 1.5s)"]
     
-    Feedback --> Queue[(BullMQ + Redis Task Queue)]
+    Feedback --> Queue[("BullMQ + Redis Task Queue")]
     
-    subgraph Worker [RepoClaw Worker Service]
-        Queue --> Consumer[Worker Process]
-        Consumer --> GitClone[Shallow clone target repo]
-        Consumer --> Core[Agent Self-Healing State Machine]
+    subgraph Worker["RepoClaw Worker Service"]
+        Queue --> Consumer["Worker Process"]
+        Consumer --> GitClone["Shallow clone target repo"]
+        Consumer --> Core["Agent Self-Healing State Machine"]
         
-        subgraph Sandbox [Zero-Trust Docker Sandbox]
-            Core --> Runner[Dockerode Runner]
-            Runner --> Container["python:3.11-slim (No network / RO mount / 30s timeout)"]
+        subgraph Sandbox["Zero-Trust Sandbox"]
+            Core --> Runner["Docker Sandbox Runner"]
+            Runner --> Container["Isolated Container (No-net/RO-mount/Anti-Fork-Bomb)"]
         end
         
-        Container --> Matcher[Traceback extraction & regex matcher]
-        Matcher -->|Mismatch & Retriable| Core
-        Matcher -->|Verified / Max Retries| Octokit[GitHub Octokit Write-back]
+        Container --> Matcher["Traceback Extraction & Matcher"]
+        Matcher -->|"Mismatch & Retriable"| Core
+        Matcher -->|"Verified / Max Retries"| Octokit["GitHub Write-back Engine"]
     end
     
-    Octokit --> Done[Comment script + label reproduced + add 🚀]
-    Consumer --> DB[(SQLite + Drizzle ORM Audit Log)]
+    Octokit --> Done["Comment test script + label [reproduced] + add 🚀"]
+    Consumer --> DB[("SQLite Audit Log Trail")]
 ```
 
 ---
@@ -138,18 +138,14 @@ Beyond the native ChatOps interface in GitHub issue comments, RepoClaw natively 
 
 ---
 
-## 🛡️ Never Reinvent the Wheel (Core Principle)
+## ✨ Key Features & User Value
 
-RepoClaw strictly builds on top of battle-tested open-source components:
-
-| Role | Solution | Rationale |
-| :--- | :--- | :--- |
-| **Webhook & Routing** | `probot` + `@octokit/rest` | Industry-standard GitHub App framework with built-in webhook signature verification |
-| **Queue & Peak-shaving** | `bullmq` + `ioredis` | Production-grade Redis queue with exponential backoff and retry mechanisms |
-| **Sandbox Isolation** | `dockerode` | Direct Docker Engine socket control for microsecond container lifecycle management |
-| **LLM Structured Output** | Vercel AI SDK (`ai`) + `zod` | Declarative multi-model calling layer with native support for DeepSeek & Qwen |
-| **Persistence & Audit** | `drizzle-orm` + `@libsql/client` | Ultra-fast TypeScript ORM supporting zero-compilation local SQLite files |
-| **Self-Healing Loop** | `SWE-bench` / `Codex Harness` | Adopts industry-standard traceback extraction regex and self-healing state machine design |
+- 🤖 **Zero-Context-Switch ChatOps**: Maintainers never leave GitHub—simply comment `@repoclaw repro` on any issue.
+- 🔒 **Enterprise-Grade Zero-Trust Isolation**: Air-gapped container (`NetworkMode: none`), read-only repo mount (`:ro`), 64MB memory tmpfs, strict `PidsLimit: 64` (anti-fork-bomb), and 30s hard SIGKILL.
+- 🧠 **Autonomous Self-Healing Loop**: Dynamic reflection loop that inspects error tracebacks and adjusts imports or inputs up to 3 rounds to isolate the genuine bug.
+- 🏷️ **Automated Triage & Labeling**: Automatically applies `[reproduced]` tag and outputs a minimal standalone reproducible test script ready to copy into `tests/`.
+- 🌐 **Built-in Dark-Themed Live Dashboard**: Track reproduction success rates, execution duration, and audit logs with zero extra configuration.
+- 🐳 **Effortless Deployment**: Install via 1-click GitHub App, or self-host completely with `docker compose up -d`.
 
 ---
 

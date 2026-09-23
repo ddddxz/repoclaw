@@ -95,35 +95,35 @@ ZeroDivisionError: division by zero
 
 ---
 
-## 🏛️ 系统架构 (Architecture)
+## 🏛️ 系统执行全流程架构 (Architecture)
 
 ```mermaid
 flowchart TD
-    User([GitHub 维护者]) -->|@repoclaw repro| Webhook[GitHub Webhook Gateway]
-    Webhook --> Auth{鉴权网关: OWNER / MEMBER / COLLABORATOR}
+    User["GitHub 维护者"] -->|"@repoclaw repro"| Webhook["GitHub Webhook 事件网关"]
+    Webhook --> Auth{"鉴权网关 (OWNER / MEMBER)"}
     
-    Auth -->|未授权| Deny[回帖拦截警示并阻断]
-    Auth -->|鉴权通过| Feedback[< 1.5s 立即添加 👀 表情]
+    Auth -->|"未授权"| Deny["回帖安全拦截并提醒"]
+    Auth -->|"鉴权通过"| Feedback["即刻添加 👀 反应 (1.5s内)"]
     
-    Feedback --> Queue[(BullMQ + Redis 异步削峰队列)]
+    Feedback --> Queue[("BullMQ + Redis 异步削峰队列")]
     
-    subgraph Worker [RepoClaw 异步消费服务]
-        Queue --> Consumer[Worker 消费进程]
-        Consumer --> GitClone[极速 Shallow 克隆目标仓库]
-        Consumer --> Core[Agent 自愈反思状态机]
+    subgraph Worker["RepoClaw 异步消费服务"]
+        Queue --> Consumer["Worker 消费进程"]
+        Consumer --> GitClone["极速 Shallow 克隆目标仓库"]
+        Consumer --> Core["Agent 自愈反思状态机"]
         
-        subgraph Sandbox [零信任受限 Docker 沙箱]
-            Core --> Runner[Dockerode 沙箱执行器]
-            Runner --> Container["python:3.11-slim (断网 / 只读挂载 / 30s 硬熔断)"]
+        subgraph Sandbox["零信任安全沙箱"]
+            Core --> Runner["Docker 沙箱隔离执行器"]
+            Runner --> Container["受限容器 (断网/只读挂载/防Fork炸弹)"]
         end
         
-        Container --> Matcher[Traceback 堆栈抽取与语义正则匹配]
-        Matcher -->|未达标且可重试| Core
-        Matcher -->|复现成功 / 达到上限| Octokit[GitHub Octokit 回写]
+        Container --> Matcher["Traceback 堆栈精准抽取与比对"]
+        Matcher -->|"未达标且可自愈"| Core
+        Matcher -->|"复现成功 / 达到上限"| Octokit["GitHub 结果回写引擎"]
     end
     
-    Octokit --> Done[回帖最小用例 + 打标 reproduced + 贴 🚀]
-    Consumer --> DB[(SQLite + Drizzle ORM 审计持久化)]
+    Octokit --> Done["回帖复现代码 + 打标 [reproduced] + 贴 🚀"]
+    Consumer --> DB[("SQLite 任务生命周期审计落盘")]
 ```
 
 ---
@@ -140,18 +140,14 @@ flowchart TD
 
 ---
 
-## 🛡️ 核心研发铁律：站在巨人的肩膀上 (Never Reinvent the Wheel)
+## ✨ 核心特性与用户价值 (Key Features)
 
-RepoClaw 坚定践行**开源组件最大化复用原则**，拒绝闭门造车：
-
-| 模块职能 | 成熟开源方案 | 选型与复用依据 |
-| :--- | :--- | :--- |
-| **Webhook 路由与鉴权** | `probot` + `@octokit/rest` | 官方工业级 GitHub App 框架，自带签名校验、密钥轮换与幂等机制 |
-| **异步队列与流量削峰** | `bullmq` + `ioredis` | 高性能 Redis 队列，原生支持重试退避、失败告警与持久化 |
-| **容器沙箱生命周期** | `dockerode` | 深度接管 Docker Engine API，实现微秒级容器创建、流式输出与强杀 |
-| **LLM 结构化推导** | Vercel AI SDK (`ai`) + `zod` | 业界最先进的声明式模型调用层，原生支持 OpenAI 兼容格式 (DeepSeek, Qwen) |
-| **本地持久化与审计** | `drizzle-orm` + `@libsql/client` | 极速轻量 TypeScript ORM，支持内存/文件双模与零 C++ 编译运行 |
-| **自愈反思算法哲学** | `SWE-bench` / `Codex Harness` | 吸收其经过数万开源仓库检验的 Traceback 栈帧提取正则与变异自愈状态机 |
+- 🤖 **纯 ChatOps 零侵入交互**：维护者无需离开 GitHub，在任何 Issue 评论区敲 `@repoclaw repro` 即可秒级唤醒；
+- 🔒 **银行级零信任隔离安全**：物理级断网（`NetworkMode: none`）、代码只读挂载（`:ro`）、64MB 临时内存卷、防 Fork 炸弹限制、30 秒硬超时强杀，彻底杜绝恶意代码危害；
+- 🧠 **大模型自愈反思闭环**：多轮深度推导，遭遇模块缺失或路径偏差时自动反哺 Traceback 堆栈修补自愈（支持最多 3 轮变异），直击真实 Bug；
+- 🏷️ **全自动打标与精美报告**：复现成功后自动为 Issue 贴上 `[reproduced]` 官方标签，输出单文件可运行的最小用例与调用栈；
+- 🌐 **内置实时任务监控看板**：自带开箱即用的暗黑极客风 Web 看板，实时掌控复现成功率、耗时统计与全流程审计流水；
+- 🐳 **双模极简部署**：一键安装官方 GitHub App，或通过单条 `docker compose up -d` 命令完成本地私有化部署。
 
 ---
 

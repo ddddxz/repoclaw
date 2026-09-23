@@ -38,3 +38,9 @@ Thumbs.db
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# Internal development & agent guidelines (do not publish to public repo)
+AGENTS.md
+GEMINI.md
+agent.md
+docs/
