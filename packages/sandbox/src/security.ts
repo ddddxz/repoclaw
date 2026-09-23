@@ -9,6 +9,7 @@ export const SANDBOX_DEFAULTS = {
   TIMEOUT_MS: 30_000,                  // 30 秒硬超时熔断
   MEMORY_BYTES: 512 * 1024 * 1024,      // 512MB 内存上限
   NANO_CPUS: 1_000_000_000,             // 1.0 个 CPU 核心
+  PIDS_LIMIT: 64,                       // 防御 Fork 炸弹耗尽宿主机进程表
   USER: "1000:1000",                    // 降权执行用户 (非 root)
   WORKING_DIR: "/scratch",
   REPRO_FILE_PATH: "/scratch/repro.py",
@@ -54,6 +55,7 @@ export function buildSecureContainerConfig(options: SandboxOptions): Docker.Cont
       Memory: memory,
       MemorySwap: memory, // 禁止使用 Swap，防内存击穿
       NanoCpus: SANDBOX_DEFAULTS.NANO_CPUS,
+      PidsLimit: SANDBOX_DEFAULTS.PIDS_LIMIT,
 
       // 3. 根文件系统只读挂载
       ReadonlyRootfs: true,
@@ -98,5 +100,9 @@ export function validateSandboxSecurity(config: Docker.ContainerCreateOptions): 
 
   if (hostConfig.Privileged) {
     throw new Error("安全违规：禁止启用 Privileged 特权模式");
+  }
+
+  if (!hostConfig.PidsLimit || hostConfig.PidsLimit > 128) {
+    throw new Error(`安全违规：必须配置严格的 PidsLimit (<= 128)，实际为 ${hostConfig.PidsLimit}`);
   }
 }

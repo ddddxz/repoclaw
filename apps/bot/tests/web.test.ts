@@ -38,6 +38,18 @@ describe("RepoClaw 内置 Web 官网与实时任务审计看板测试", () => {
     await repo.close();
   });
 
+  it("GET /healthz 与 /api/health 应返回 200 OK 与服务健康指标", async () => {
+    const res1 = await fetch(`${baseUrl}/healthz`);
+    expect(res1.status).toBe(200);
+    const data1 = await res1.json();
+    expect(data1.status).toBe("ok");
+    expect(data1.service).toBe("repoclaw-bot");
+    expect(typeof data1.uptime).toBe("number");
+
+    const res2 = await fetch(`${baseUrl}/api/health`);
+    expect(res2.status).toBe(200);
+  });
+
   it("GET / 应当成功返回极客暗黑风 Landing 开发者官网页面", async () => {
     const res = await fetch(`${baseUrl}/`);
     expect(res.status).toBe(200);

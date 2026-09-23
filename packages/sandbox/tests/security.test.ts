@@ -19,6 +19,7 @@ describe("@repoclaw/sandbox 沙箱隔离器与安全性基线测试", () => {
       expect(config.HostConfig?.ReadonlyRootfs).toBe(true);
       expect(config.User).toBe("1000:1000");
       expect(config.HostConfig?.Memory).toBe(512 * 1024 * 1024);
+      expect(config.HostConfig?.PidsLimit).toBe(64);
       expect(config.HostConfig?.Tmpfs).toBeDefined();
       expect(config.HostConfig?.Binds).toContain("C:/fake/repo:/workspace:ro");
 

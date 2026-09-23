@@ -31,7 +31,7 @@ export async function shallowCloneRepo(
 
   await execFileAsync(
     "git",
-    ["clone", "--depth", "1", "--single-branch", repoUrl, targetDir],
+    ["clone", "--depth", "1", "--single-branch", "--", repoUrl, targetDir],
     {
       timeout: timeoutMs,
       env: {

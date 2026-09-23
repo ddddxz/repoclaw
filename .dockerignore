@@ -13,3 +13,6 @@ data
 .idea
 scratch
 repro_temp
+*.pem
+private-key.pem
+*.key

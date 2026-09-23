@@ -145,28 +145,28 @@ export class ReproTaskRepository {
     avgDurationMs: number;
     totalRetries: number;
   }> {
-    const all = await this.db.select().from(reproTasks);
-    const total = all.length;
-    let verified = 0;
-    let unverified = 0;
-    let failed = 0;
-    let running = 0;
-    let pending = 0;
-    let totalDuration = 0;
-    let totalRetries = 0;
+    const res = await this.client.execute(`
+      SELECT 
+        COUNT(*) as total,
+        COALESCE(SUM(CASE WHEN status = 'VERIFIED' THEN 1 ELSE 0 END), 0) as verified,
+        COALESCE(SUM(CASE WHEN status = 'UNVERIFIED' THEN 1 ELSE 0 END), 0) as unverified,
+        COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) as failed,
+        COALESCE(SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END), 0) as running,
+        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0) as pending,
+        COALESCE(AVG(duration_ms), 0) as avgDurationMs,
+        COALESCE(SUM(retry_count), 0) as totalRetries
+      FROM repro_tasks;
+    `);
 
-    for (const t of all) {
-      if (t.status === "VERIFIED") verified++;
-      else if (t.status === "UNVERIFIED") unverified++;
-      else if (t.status === "FAILED") failed++;
-      else if (t.status === "RUNNING") running++;
-      else if (t.status === "PENDING") pending++;
-
-      totalDuration += t.durationMs || 0;
-      totalRetries += t.retryCount || 0;
-    }
-
-    const avgDurationMs = total > 0 ? Math.round(totalDuration / total) : 0;
+    const row = res.rows[0];
+    const total = Number(row?.total ?? 0);
+    const verified = Number(row?.verified ?? 0);
+    const unverified = Number(row?.unverified ?? 0);
+    const failed = Number(row?.failed ?? 0);
+    const running = Number(row?.running ?? 0);
+    const pending = Number(row?.pending ?? 0);
+    const avgDurationMs = total > 0 ? Math.round(Number(row?.avgDurationMs ?? 0)) : 0;
+    const totalRetries = Number(row?.totalRetries ?? 0);
     const successRate = total > 0 ? Math.round((verified / total) * 100) : 0;
 
     return {

@@ -27,11 +27,22 @@ export function createWebRouter(customDb?: ReproTaskRepository): Router {
       res.status(404).end();
       return;
     }
-    const filePath = path.join(publicDir, "images", filename);
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(publicDir, "images", safeFilename);
     res.sendFile(filePath, (err) => {
       if (err) {
         res.status(404).end();
       }
+    });
+  });
+
+  // 2. 健康检查与就绪探针 (用于 Docker / K8s / 云部署监控)
+  router.get(["/healthz", "/api/health"], (_req: Request, res: Response) => {
+    res.status(200).json({
+      status: "ok",
+      service: "repoclaw-bot",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
     });
   });
 

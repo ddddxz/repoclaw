@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 启用 pnpm
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@12.4.2 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # 复制依赖描述文件以利用 Docker 缓存层
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NODE_ENV=production
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@12.4.2 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # 从 builder 复制编译产物与 workspace 配置
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
