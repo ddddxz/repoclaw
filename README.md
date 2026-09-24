@@ -216,7 +216,7 @@ pnpm -r build
 pnpm -r test
 ```
 
-> **测试覆盖**：项目内置 **56 项工业级自动化测试**，包括防逃逸参数校验、Traceback 堆栈精准提取、AST 单文件用例分析、ChatOps 维护者角色鉴权、双模 Mock 沙箱与全链路 E2E 闭环验证，100% 离线通过。
+> **测试覆盖**：项目内置 **75 项工业级自动化测试**，包括 Python/TS/Java 多语言 AST 符号抽取、零信任防逃逸参数校验、多语言 Traceback 堆栈精准提取、ChatOps 维护者角色鉴权、双模 Mock 沙箱与真实开源工程（Hermes/DeepSeek/Fastjson/Dubbo）全链路闭环验证，100% 离线与 CI 绿灯通过。
 
 ---
 

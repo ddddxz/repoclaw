@@ -182,7 +182,7 @@ pnpm -r build
 pnpm -r test
 ```
 
-> Includes **56 automated tests** (unit tests + end-to-end integration tests) covering sandbox escape prevention, regex traceback extraction, AST code analysis, ChatOps role authorization, and Drizzle SQLite persistence.
+> Includes **75 automated tests** (unit tests + multi-language real-world integration tests) covering Python/TypeScript/Java AST symbol extraction, zero-trust sandbox containment, multi-language traceback regex matching, ChatOps role authorization, and real-world reproduction across Hermes, DeepSeek, Fastjson, and Dubbo.
 
 ---
 
