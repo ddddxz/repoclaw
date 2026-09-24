@@ -77,8 +77,17 @@ export function buildSecureContainerConfig(options: SandboxOptions): Docker.Cont
         "/scratch": "rw,exec,nosuid,size=64m",
       },
 
-      // 5. 目标仓库代码目录以只读挂载
-      Binds: [`${options.hostRepoDir}:/workspace:ro`],
+      // 5. 目标仓库代码目录以只读挂载 (支持大工程外部缓存依赖卷挂载)
+      Binds: (() => {
+        const binds = [`${options.hostRepoDir}:/workspace:ro`];
+        if (options.extraBinds) {
+          for (const b of options.extraBinds) {
+            const bindStr = b.endsWith(":ro") ? b : `${b}:ro`;
+            binds.push(bindStr);
+          }
+        }
+        return binds;
+      })(),
 
       // 6. 安全配置扩展：禁止特权模式与提权
       Privileged: false,

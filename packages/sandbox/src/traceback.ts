@@ -53,9 +53,11 @@ export function parsePythonTraceback(stderr: string): ParsedTraceback {
     const file = frameMatch[1] ?? "";
     const lineStr = frameMatch[2] ?? "0";
     const line = parseInt(lineStr, 10);
+    const isWorkspaceFrame = file.includes("/workspace") && !file.includes("site-packages");
     frames.push({
       file,
       line: isNaN(line) ? 0 : line,
+      isWorkspaceFrame,
     });
   }
 
@@ -107,9 +109,11 @@ export function parseNodeTraceback(stderr: string): ParsedTraceback {
     const file = frameMatch[2] ?? "";
     const lineStr = frameMatch[3] ?? "0";
     const line = parseInt(lineStr, 10);
+    const isWorkspaceFrame = file.includes("/workspace") && !file.includes("node_modules");
     frames.push({
       file,
       line: isNaN(line) ? 0 : line,
+      isWorkspaceFrame,
     });
   }
 

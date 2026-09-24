@@ -44,6 +44,20 @@ describe("@repoclaw/sandbox 沙箱隔离器与安全性基线测试", () => {
       expect(() => validateSandboxSecurity(config)).not.toThrow();
     });
 
+    it("大工程场景：应支持挂载外部依赖缓存卷 (extraBinds) 并严格强制只读", () => {
+      const config = buildSecureContainerConfig({
+        hostRepoDir: "C:/fake/deepseek-v3",
+        scriptContent: "import torch",
+        extraBinds: ["/cache/site-packages:/root/.local/lib/python3.11/site-packages"],
+      });
+
+      expect(config.HostConfig?.Binds).toContain(
+        "/cache/site-packages:/root/.local/lib/python3.11/site-packages:ro"
+      );
+      expect(config.HostConfig?.ReadonlyRootfs).toBe(true);
+      expect(() => validateSandboxSecurity(config)).not.toThrow();
+    });
+
     it("当检测到网络模式非 none 时，安全校验必须强行阻断并报错", () => {
       const dangerousConfig = buildSecureContainerConfig({
         hostRepoDir: "C:/fake/repo",
@@ -85,6 +99,7 @@ ZeroDivisionError: division by zero
       expect(parsed.frames.length).toBe(1);
       expect(parsed.frames[0]?.file).toBe("/workspace/math_utils.py");
       expect(parsed.frames[0]?.line).toBe(42);
+      expect(parsed.frames[0]?.isWorkspaceFrame).toBe(true);
     });
 
     it("应从 Node.js/V8 堆栈输出中精准抽取 TypeError 及出错文件栈帧 (如 deepseek-harness 场景)", () => {
@@ -102,6 +117,7 @@ TypeError: Cannot read properties of undefined (reading 'permission')
       expect(parsed.frames.length).toBeGreaterThanOrEqual(2);
       expect(parsed.frames[0]?.file).toBe("/workspace/packages/sandbox/permission.js");
       expect(parsed.frames[0]?.line).toBe(42);
+      expect(parsed.frames[0]?.isWorkspaceFrame).toBe(true);
 
       // 通过通用解析调度器也能精准命中
       const uniParsed = parseUniversalTraceback(nodeStderr, "typescript");

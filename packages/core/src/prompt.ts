@@ -19,8 +19,9 @@ export function buildReproPlanSystemPrompt(meta: RepoMetadata | UniversalRepoMet
 4. 目标仓库已探测到的可用核心包名或入口：[ ${packagesList} ]。
 5. 脚本请使用标准 ESM 导入语法（例如 \`import { ... } from '/workspace/...' \` 或直接从模块名导入）。
 
-【代码合成原则】
+【代码合成与大工程复现原则】
 - 聚焦单一崩溃点：脚本目标是 100% 触发 Issue 报告中所描述的特定异常（TargetException，如 TypeError）。
+- 外部依赖与网络 Mock：若被测代码涉及外部网络请求、大模型 API 或数据库（如 Hermes / Agent 项目），因沙箱绝对断网，请使用原生对象或内置轻量 Mock 隔离外部调用，聚焦复现其内部状态转换、数据反序列化或参数校验逻辑。
 - 绝不修复 Bug：你合成的是【复现测试用例】，绝不要在脚本中对 Bug 进行修复或加 try-catch 掩盖。
 - 必须基于给定的 Zod Schema 输出结构化 ReproPlan。`;
   }
@@ -51,8 +52,10 @@ ${formattedStub}
    import sys
    sys.path.insert(0, '${meta.pythonPathRelative}')
 
-【代码合成原则】
+【代码合成与大工程复现原则（如 Hermes、DeepSeek、大型 Agent 框架）】
 - 聚焦单一崩溃点：脚本目标是 100% 触发 Issue 报告中所描述的特定异常（TargetException）。
+- 外部服务自动 Mock：若被测模块依赖外部大模型 API（OpenAI/Anthropic/DeepSeek 等）、网络服务或数据库，必须使用 unittest.mock (如 @patch / MagicMock) 模拟其返回值，聚焦复现核心内部逻辑与数据流动崩溃。
+- 异步协程原生支持：若被测函数为 async 异步函数，请在脚本中通过 import asyncio; asyncio.run(main()) 执行。
 - 绝不修复 Bug：你合成的是【复现测试用例】，绝不要在脚本中对 Bug 进行修复或加 try-except 掩盖。
 - 必须基于给定的 Zod Schema 输出结构化 ReproPlan。${astSection}`;
 }

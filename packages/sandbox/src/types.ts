@@ -36,14 +36,18 @@ export interface SandboxOptions {
    * 自定义注入的复现脚本文件名 (如 repro.mjs 或 repro.py)
    */
   scriptFileName?: string;
+  /**
+   * 额外只读数据/依赖卷挂载 (例如大工程预置的依赖缓存 site-packages 或 node_modules)
+   */
+  extraBinds?: string[];
 }
 
 /**
- * 结构化解析后的 Python Traceback 堆栈信息 (吸收自 Codex Harness)
+ * 结构化解析后的 Python / Node.js 堆栈信息 (吸收自 Codex Harness 与 SWE-bench)
  */
 export interface ParsedTraceback {
   /**
-   * 异常类型名称 (如 ZeroDivisionError, KeyError, ModuleNotFoundError)
+   * 异常类型名称 (如 ZeroDivisionError, KeyError, ModuleNotFoundError, TypeError)
    */
   exceptionType: string;
   /**
@@ -61,6 +65,10 @@ export interface ParsedTraceback {
     file: string;
     line: number;
     codeSnippet?: string;
+    /**
+     * 是否属于当前被测工程内部代码帧 (区分第三方包与底层环境)
+     */
+    isWorkspaceFrame?: boolean;
   }>;
   /**
    * 原始完整 stderr 文本
