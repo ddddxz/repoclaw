@@ -220,18 +220,6 @@ pnpm -r test
 
 ---
 
-## 🗺️ 项目路线图 (Roadmap)
-
-- [x] **Milestone 1**: 数据契约 (`@repoclaw/shared`) 与 Docker 零信任安全隔离器 (`@repoclaw/sandbox`)
-- [x] **Milestone 2**: Agent 意图推导与状态机自愈反思闭环 (`@repoclaw/core`)
-- [x] **Milestone 3**: Probot GitHub App 网关、ChatOps 指令解析与 BullMQ 异步削峰 (`apps/bot`)
-- [x] **Milestone 4**: 基于 Drizzle ORM + LibSQL 的任务生命周期审计与持久化 (`apps/bot/src/db`)
-- [x] **Milestone 5**: 生产 `docker-compose.yml` 编排、多阶段 `Dockerfile` 与开源发布
-- [ ] **Next**: 扩展对 JavaScript/TypeScript (Jest/Vitest)、Golang 及 Rust 仓库的原生支持
-- [ ] **Next**: Web 状态观测看板（任务重试耗时、Token 消耗分布与复现成功率）
-
----
-
 ## 📄 开源许可证 (License)
 
 本项目遵循 [MIT License](./LICENSE) 开放源代码。

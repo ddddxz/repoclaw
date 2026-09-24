@@ -168,7 +168,7 @@ export function renderLandingPage(): string {
   <footer class="border-t border-white/5 py-8 text-center text-xs text-slate-500 font-mono">
     <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
       <span>RepoClaw © 2026. Released under MIT License.</span>
-      <span>Never Reinvent The Wheel · Standing on the Shoulders of Giants</span>
+      <span>Autonomous Bug Reproducer & Test Synthesizer for GitHub</span>
     </div>
   </footer>
 </body>

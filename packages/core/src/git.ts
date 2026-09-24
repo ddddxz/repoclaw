@@ -133,3 +133,148 @@ export async function inspectPythonRepo(
     astOutlines,
   };
 }
+
+export type RepoLanguage = "python" | "typescript" | "javascript" | "unknown";
+
+export interface UniversalRepoMetadata extends RepoMetadata {
+  language: RepoLanguage;
+  packageJsonData?: {
+    name?: string;
+    version?: string;
+    scripts?: Record<string, string>;
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  hasTsConfig?: boolean;
+  testRunner?: "vitest" | "jest" | "mocha" | "pytest" | "unknown";
+}
+
+/**
+ * 自动探测目标代码仓库的主要编程语言生态 (支持 Python / TypeScript / JavaScript)
+ */
+export async function detectRepoLanguage(repoDir: string): Promise<RepoLanguage> {
+  const entries = await fs.readdir(repoDir);
+  const fileSet = new Set(entries);
+
+  // 1. Python 特征文件探测
+  if (
+    fileSet.has("pyproject.toml") ||
+    fileSet.has("setup.py") ||
+    fileSet.has("requirements.txt") ||
+    fileSet.has("Pipfile") ||
+    entries.some((f) => f.endsWith(".py"))
+  ) {
+    return "python";
+  }
+
+  // 2. TypeScript 特征文件探测
+  if (fileSet.has("tsconfig.json") || entries.some((f) => f.endsWith(".ts") || f.endsWith(".tsx"))) {
+    return "typescript";
+  }
+
+  // 3. JavaScript 特征文件探测
+  if (fileSet.has("package.json") || entries.some((f) => f.endsWith(".js") || f.endsWith(".jsx"))) {
+    return "javascript";
+  }
+
+  return "unknown";
+}
+
+/**
+ * 探测与解析 JavaScript / TypeScript 仓库环境元数据 (提取 package.json, 测试框架与核心源码)
+ */
+export async function inspectJsTsRepo(repoDir: string): Promise<UniversalRepoMetadata> {
+  const entries = await fs.readdir(repoDir, { withFileTypes: true });
+  const entryFiles: string[] = [];
+  const packageNames: string[] = [];
+  let hasTsConfig = false;
+  let packageJsonData: any = undefined;
+  let testRunner: "vitest" | "jest" | "mocha" | "pytest" | "unknown" = "unknown";
+
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      if (entry.name === "tsconfig.json") hasTsConfig = true;
+      if (entry.name === "package.json") {
+        try {
+          const raw = await fs.readFile(path.join(repoDir, "package.json"), "utf8");
+          packageJsonData = JSON.parse(raw);
+          if (packageJsonData.name) packageNames.push(packageJsonData.name);
+          const allDeps = {
+            ...packageJsonData.dependencies,
+            ...packageJsonData.devDependencies,
+          };
+          if ("vitest" in allDeps) testRunner = "vitest";
+          else if ("jest" in allDeps) testRunner = "jest";
+          else if ("mocha" in allDeps) testRunner = "mocha";
+        } catch {
+          // 容错
+        }
+      }
+      if (
+        entry.name.endsWith(".ts") ||
+        entry.name.endsWith(".js") ||
+        entry.name.endsWith(".mjs") ||
+        entry.name.endsWith(".cjs")
+      ) {
+        entryFiles.push(entry.name);
+      }
+    } else if (entry.isDirectory()) {
+      const ignored = new Set([
+        "node_modules",
+        ".git",
+        "dist",
+        "build",
+        "coverage",
+        ".turbo",
+        ".next",
+      ]);
+      if (ignored.has(entry.name)) continue;
+
+      if (entry.name === "src") {
+        try {
+          const srcEntries = await fs.readdir(path.join(repoDir, "src"));
+          for (const s of srcEntries) {
+            if (s.endsWith(".ts") || s.endsWith(".js")) {
+              entryFiles.push(path.join("src", s).replace(/\\/g, "/"));
+            }
+          }
+        } catch {}
+      }
+    }
+  }
+
+  const isTs = hasTsConfig || entryFiles.some((f) => f.endsWith(".ts"));
+
+  return {
+    repoDir,
+    language: isTs ? "typescript" : "javascript",
+    packageNames: Array.from(new Set(packageNames)),
+    pythonPathRelative: "/workspace",
+    hasPyproject: false,
+    hasSetupPy: false,
+    hasTsConfig,
+    packageJsonData,
+    testRunner,
+    entryFiles,
+  };
+}
+
+/**
+ * 通用多语言仓库自动识别与探测分析统一入口
+ */
+export async function inspectRepo(
+  repoDir: string,
+  keywords?: string[]
+): Promise<UniversalRepoMetadata> {
+  const lang = await detectRepoLanguage(repoDir);
+  if (lang === "typescript" || lang === "javascript") {
+    return inspectJsTsRepo(repoDir);
+  }
+  const pythonMeta = await inspectPythonRepo(repoDir, keywords);
+  return {
+    ...pythonMeta,
+    language: "python",
+    testRunner: "pytest",
+  };
+}
+
