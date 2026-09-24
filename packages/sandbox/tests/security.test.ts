@@ -4,6 +4,7 @@ import {
   validateSandboxSecurity,
   parsePythonTraceback,
   parseNodeTraceback,
+  parseJavaTraceback,
   parseUniversalTraceback,
   MockSandboxRunner,
   createSandboxRunner,
@@ -39,6 +40,22 @@ describe("@repoclaw/sandbox 沙箱隔离器与安全性基线测试", () => {
       expect(config.Image).toBe("node:20-slim");
       expect(config.Cmd).toEqual(["node", "/scratch/repro.mjs"]);
       expect(config.Env).toContain("NODE_ENV=test");
+      expect(config.HostConfig?.NetworkMode).toBe("none");
+      expect(config.HostConfig?.ReadonlyRootfs).toBe(true);
+      expect(() => validateSandboxSecurity(config)).not.toThrow();
+    });
+
+    it("当指定 Java 语言时，应自动配置 JVM 容器与 Repro.java 脚本入口", () => {
+      const config = buildSecureContainerConfig({
+        hostRepoDir: "C:/fake/fastjson2",
+        scriptContent: "public class Repro { public static void main(String[] args) {} }",
+        language: "java",
+      });
+
+      expect(config.Image).toBe("eclipse-temurin:17-jre-jammy");
+      expect(config.Cmd?.[0]).toBe("java");
+      expect(config.Cmd?.[config.Cmd.length - 1]).toBe("/scratch/Repro.java");
+      expect(config.Env?.some((e) => e.startsWith("JAVA_TOOL_OPTIONS"))).toBe(true);
       expect(config.HostConfig?.NetworkMode).toBe("none");
       expect(config.HostConfig?.ReadonlyRootfs).toBe(true);
       expect(() => validateSandboxSecurity(config)).not.toThrow();
@@ -158,6 +175,50 @@ SyntaxError: invalid syntax
 
       const parsed = parsePythonTraceback(stderr);
       expect(parsed.exceptionType).toBe("SyntaxError");
+      expect(parsed.isRecoverableImportOrSyntax).toBe(true);
+    });
+
+    it("应从 JVM 堆栈输出中精准抽取 NullPointerException、IllegalArgumentException 及出错栈帧 (如 fastjson2 / Dubbo 场景)", () => {
+      const javaNpeStderr = `
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "str" is null
+\tat com.alibaba.fastjson2.JSONReader.readString(JSONReader.java:1420)
+\tat com.alibaba.fastjson2.JSONReader.readObject(JSONReader.java:850)
+\tat com.example.demo.App.main(App.java:15)
+      `.trim();
+
+      const parsedNpe = parseJavaTraceback(javaNpeStderr);
+      expect(parsedNpe.exceptionType).toBe("NullPointerException");
+      expect(parsedNpe.exceptionMessage).toContain("Cannot invoke \"String.length()\"");
+      expect(parsedNpe.isRecoverableImportOrSyntax).toBe(false);
+      expect(parsedNpe.frames.length).toBeGreaterThanOrEqual(3);
+      expect(parsedNpe.frames[0]?.file).toBe("JSONReader.java");
+      expect(parsedNpe.frames[0]?.line).toBe(1420);
+      expect(parsedNpe.frames[0]?.isWorkspaceFrame).toBe(true);
+
+      // 通过通用解析调度器也能精准命中
+      const uniParsed = parseUniversalTraceback(javaNpeStderr, "java");
+      expect(uniParsed.exceptionType).toBe("NullPointerException");
+
+      const javaArgStderr = `
+java.lang.IllegalArgumentException: Timeout must be greater than 0, but got: -500
+\tat org.apache.dubbo.rpc.RpcInvocation.setTimeout(RpcInvocation.java:128)
+\tat org.apache.dubbo.rpc.cluster.support.AbstractClusterInvoker.invoke(AbstractClusterInvoker.java:230)
+      `.trim();
+
+      const parsedArg = parseJavaTraceback(javaArgStderr);
+      expect(parsedArg.exceptionType).toBe("IllegalArgumentException");
+      expect(parsedArg.exceptionMessage).toContain("Timeout must be greater than 0");
+      expect(parsedArg.frames[0]?.file).toBe("RpcInvocation.java");
+      expect(parsedArg.frames[0]?.line).toBe(128);
+    });
+
+    it("应正确识别 Java ClassNotFoundException 为可自愈反思异常", () => {
+      const javaStderr = `
+Exception in thread "main" java.lang.ClassNotFoundException: com.alibaba.fastjson2.MissingClass
+\tat java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:641)
+      `.trim();
+
+      const parsed = parseJavaTraceback(javaStderr);
       expect(parsed.isRecoverableImportOrSyntax).toBe(true);
     });
   });

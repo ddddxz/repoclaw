@@ -7,6 +7,7 @@ import type { SandboxOptions } from "./types.js";
 export const SANDBOX_DEFAULTS = {
   IMAGE: "python:3.11-slim",
   NODE_IMAGE: "node:20-slim",
+  JAVA_IMAGE: "eclipse-temurin:17-jre-jammy",
   TIMEOUT_MS: 30_000,                  // 30 秒硬超时熔断
   MEMORY_BYTES: 512 * 1024 * 1024,      // 512MB 内存上限
   NANO_CPUS: 1_000_000_000,             // 1.0 个 CPU 核心
@@ -15,6 +16,7 @@ export const SANDBOX_DEFAULTS = {
   WORKING_DIR: "/scratch",
   REPRO_FILE_PATH: "/scratch/repro.py",
   NODE_REPRO_FILE_PATH: "/scratch/repro.mjs",
+  JAVA_REPRO_FILE_PATH: "/scratch/Repro.java",
 } as const;
 
 /**
@@ -23,20 +25,34 @@ export const SANDBOX_DEFAULTS = {
 export function buildSecureContainerConfig(options: SandboxOptions): Docker.ContainerCreateOptions {
   const memory = options.memoryBytes ?? SANDBOX_DEFAULTS.MEMORY_BYTES;
   const isNode = options.language === "typescript" || options.language === "javascript";
-  const defaultImage = isNode ? SANDBOX_DEFAULTS.NODE_IMAGE : SANDBOX_DEFAULTS.IMAGE;
+  const isJava = options.language === "java";
+  const defaultImage = isJava
+    ? SANDBOX_DEFAULTS.JAVA_IMAGE
+    : isNode
+    ? SANDBOX_DEFAULTS.NODE_IMAGE
+    : SANDBOX_DEFAULTS.IMAGE;
   const image = options.imageName ?? defaultImage;
 
-  const scriptFileName = options.scriptFileName ?? (isNode ? "repro.mjs" : "repro.py");
+  const scriptFileName =
+    options.scriptFileName ??
+    (isJava ? "Repro.java" : isNode ? "repro.mjs" : "repro.py");
   const reproFilePath = `${SANDBOX_DEFAULTS.WORKING_DIR}/${scriptFileName}`;
 
   // 将环境变量转化为 KEY=VALUE 格式
-  const envArray: string[] = isNode
-    ? ["NODE_ENV=test", "NODE_PATH=/workspace/node_modules:/workspace"]
-    : [
-        "PYTHONUNBUFFERED=1",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "PYTHONPATH=/workspace",
-      ];
+  let envArray: string[] = [
+    "PYTHONUNBUFFERED=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONPATH=/workspace",
+  ];
+  if (isNode) {
+    envArray = ["NODE_ENV=test", "NODE_PATH=/workspace/node_modules:/workspace"];
+  } else if (isJava) {
+    envArray = [
+      "JAVA_TOOL_OPTIONS=-Xmx256m",
+      "CLASSPATH=/workspace:/workspace/target/classes:/workspace/build/classes/java/main:/workspace/lib/*",
+    ];
+  }
+
   if (options.env) {
     for (const [k, v] of Object.entries(options.env)) {
       envArray.push(`${k}=${v}`);
@@ -48,7 +64,11 @@ export function buildSecureContainerConfig(options: SandboxOptions): Docker.Cont
     throw new Error("沙箱启动失败：未指定有效的 hostRepoDir 仓库挂载路径");
   }
 
-  const cmd = isNode ? ["node", reproFilePath] : ["python", reproFilePath];
+  const cmd = isJava
+    ? ["java", "-cp", "/workspace:/workspace/target/classes:/workspace/build/classes/java/main:/workspace/lib/*:/scratch", reproFilePath]
+    : isNode
+    ? ["node", reproFilePath]
+    : ["python", reproFilePath];
 
   return {
     Image: image,

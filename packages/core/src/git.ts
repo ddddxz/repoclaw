@@ -149,7 +149,7 @@ export async function inspectPythonRepo(
   };
 }
 
-export type RepoLanguage = "python" | "typescript" | "javascript" | "unknown";
+export type RepoLanguage = "python" | "typescript" | "javascript" | "java" | "unknown";
 
 export interface UniversalRepoMetadata extends RepoMetadata {
   language: RepoLanguage;
@@ -161,11 +161,11 @@ export interface UniversalRepoMetadata extends RepoMetadata {
     devDependencies?: Record<string, string>;
   };
   hasTsConfig?: boolean;
-  testRunner?: "vitest" | "jest" | "mocha" | "pytest" | "unknown";
+  testRunner?: "vitest" | "jest" | "mocha" | "pytest" | "junit" | "unknown";
 }
 
 /**
- * 自动探测目标代码仓库的主要编程语言生态 (支持 Python / TypeScript / JavaScript)
+ * 自动探测目标代码仓库的主要编程语言生态 (支持 Python / TypeScript / JavaScript / Java)
  */
 export async function detectRepoLanguage(repoDir: string): Promise<RepoLanguage> {
   const entries = await fs.readdir(repoDir);
@@ -192,7 +192,88 @@ export async function detectRepoLanguage(repoDir: string): Promise<RepoLanguage>
     return "javascript";
   }
 
+  // 4. Java 特征文件探测 (Maven / Gradle / 原生 Java)
+  if (
+    fileSet.has("pom.xml") ||
+    fileSet.has("build.gradle") ||
+    fileSet.has("build.gradle.kts") ||
+    fileSet.has("settings.gradle") ||
+    fileSet.has("mvnw") ||
+    fileSet.has("gradlew") ||
+    entries.some((f) => f.endsWith(".java"))
+  ) {
+    return "java";
+  }
+
   return "unknown";
+}
+
+/**
+ * 探测与解析 Java 仓库环境元数据 (支持 Maven / Gradle 骨架、扫描 src/main/java 与根模块)
+ */
+export async function inspectJavaRepo(
+  repoDir: string,
+  _keywords?: string[]
+): Promise<UniversalRepoMetadata> {
+  const entries = await fs.readdir(repoDir, { withFileTypes: true });
+  const entryFiles: string[] = [];
+  const packageNames: string[] = [];
+
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      if (entry.name.endsWith(".java")) {
+        entryFiles.push(entry.name);
+      }
+    }
+  }
+
+  // 递归扫描 src/main/java 提取包名与核心类
+  const javaSrcRoot = path.join(repoDir, "src", "main", "java");
+  async function scanJavaFiles(dir: string, base: string) {
+    try {
+      const items = await fs.readdir(dir, { withFileTypes: true });
+      for (const item of items) {
+        const full = path.join(dir, item.name);
+        const rel = path.join(base, item.name).replace(/\\/g, "/");
+        if (item.isDirectory()) {
+          if (rel.split("/").length < 8) {
+            await scanJavaFiles(full, rel);
+          }
+        } else if (item.isFile() && item.name.endsWith(".java")) {
+          entryFiles.push(rel);
+          try {
+            const content = await fs.readFile(full, "utf8");
+            const pkgMatch = content.match(/^\s*package\s+([a-zA-Z0-9_.]+);/m);
+            if (pkgMatch && pkgMatch[1]) {
+              packageNames.push(pkgMatch[1]);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  await scanJavaFiles(javaSrcRoot, "src/main/java");
+
+  // 若没有标准 src/main/java，扫描根目录下各包目录
+  if (packageNames.length === 0) {
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "target" && entry.name !== "build") {
+        await scanJavaFiles(path.join(repoDir, entry.name), entry.name);
+      }
+    }
+  }
+
+  return {
+    repoDir,
+    language: "java",
+    packageNames: Array.from(new Set(packageNames)),
+    pythonPathRelative: "/workspace",
+    hasPyproject: false,
+    hasSetupPy: false,
+    testRunner: "junit",
+    entryFiles,
+  };
 }
 
 /**
@@ -284,6 +365,9 @@ export async function inspectRepo(
   const lang = await detectRepoLanguage(repoDir);
   if (lang === "typescript" || lang === "javascript") {
     return inspectJsTsRepo(repoDir);
+  }
+  if (lang === "java") {
+    return inspectJavaRepo(repoDir, keywords);
   }
   const pythonMeta = await inspectPythonRepo(repoDir, keywords);
   return {

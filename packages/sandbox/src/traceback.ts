@@ -91,10 +91,12 @@ export function parseNodeTraceback(stderr: string): ParsedTraceback {
     const trimmedLine = line.trim();
     // 匹配如 "TypeError: ...", "Error [ERR_MODULE_NOT_FOUND]: ...", "AssertionError: ..."
     const match = trimmedLine.match(
-      /^(?:(?:\w+)?\s*\[([A-Z0-9_]+)\]\s*:?|([A-Za-z0-9_]+Error|Exception)):?\s*(.*)$/
+      /^(?:([A-Za-z0-9_]+(?:Error|Exception))|\w+)?(?:\s*\[([A-Z0-9_]+)\])?:\s*(.*)$/
     );
     if (match) {
-      exceptionType = match[2] || match[1] || "Error";
+      // 优先提取具体 Error 类名（如 RangeError、TypeError），若为通用 Error 则取错误代码（如 ERR_MODULE_NOT_FOUND）
+      const specificError = match[1] && match[1] !== "Error" ? match[1] : undefined;
+      exceptionType = specificError || match[2] || match[1] || "Error";
       exceptionMessage = (match[3] ?? "").trim();
       break;
     }
@@ -135,14 +137,93 @@ export function parseNodeTraceback(stderr: string): ParsedTraceback {
 }
 
 /**
+ * 常见可自愈修复的 Java 编译或 Classpath 类库缺失异常
+ */
+const JAVA_RECOVERABLE_EXCEPTIONS = new Set([
+  "ClassNotFoundException",
+  "NoClassDefFoundError",
+  "NoSuchMethodError",
+  "UnsupportedClassVersionError",
+]);
+
+/**
+ * 从 JVM / Java 进程 stderr 输出中提取结构化堆栈信息 (适配 Maven / Gradle / Spring / Dubbo 等 Java 仓库)
+ */
+export function parseJavaTraceback(stderr: string): ParsedTraceback {
+  const trimmed = stderr.trim();
+  const lines = trimmed.split(/\r?\n/).filter((l) => l.trim().length > 0);
+
+  let exceptionType = "UnknownError";
+  let exceptionMessage = "";
+
+  // 1. 查找首个匹配 Java 异常行: e.g. "Exception in thread "main" java.lang.NullPointerException: ..."
+  // 或 "java.lang.IllegalArgumentException: ..."
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const match = trimmedLine.match(
+      /^(?:Exception in thread "[^"]*"\s+)?([A-Za-z0-9_$.]+(?:Exception|Error|Throwable)):?\s*(.*)$/
+    );
+    if (match && match[1]) {
+      // 提取简短类名 (例如 java.lang.NullPointerException -> NullPointerException)
+      const rawFullName = match[1];
+      exceptionType = rawFullName.includes(".") ? rawFullName.split(".").pop()! : rawFullName;
+      exceptionMessage = (match[2] ?? "").trim();
+      break;
+    }
+  }
+
+  // 2. 提取 JVM 调用栈帧: at com.alibaba.fastjson2.JSONReader.readString(JSONReader.java:1420)
+  const frameRegex =
+    /^\s*at\s+([A-Za-z0-9_$.]+)\.([A-Za-z0-9_$<>]+)\((?:([A-Za-z0-9_$.]+\.java):(\d+)|Native Method|Unknown Source)\)/gm;
+  const frames: ParsedTraceback["frames"] = [];
+  let frameMatch: RegExpExecArray | null;
+
+  while ((frameMatch = frameRegex.exec(trimmed)) !== null) {
+    const fullClass = frameMatch[1] ?? "";
+    const sourceFile = frameMatch[3] ?? `${fullClass}.java`;
+    const lineStr = frameMatch[4] ?? "0";
+    const line = parseInt(lineStr, 10);
+    const isWorkspaceFrame =
+      !fullClass.startsWith("java.") &&
+      !fullClass.startsWith("javax.") &&
+      !fullClass.startsWith("jdk.") &&
+      !fullClass.startsWith("sun.");
+
+    frames.push({
+      file: sourceFile,
+      line: isNaN(line) ? 0 : line,
+      isWorkspaceFrame,
+    });
+  }
+
+  // 3. 识别可由 Agent 自愈反思修补的类名缺失或包路径错误
+  const isRecoverableImportOrSyntax =
+    JAVA_RECOVERABLE_EXCEPTIONS.has(exceptionType) ||
+    trimmed.includes("ClassNotFoundException") ||
+    trimmed.includes("cannot find symbol") ||
+    trimmed.includes("package does not exist");
+
+  return {
+    exceptionType,
+    exceptionMessage,
+    isRecoverableImportOrSyntax,
+    frames,
+    rawStderr: stderr,
+  };
+}
+
+/**
  * 通用多语言堆栈解析器调度入口
  */
 export function parseUniversalTraceback(
   stderr: string,
-  lang?: "python" | "typescript" | "javascript"
+  lang?: "python" | "typescript" | "javascript" | "java"
 ): ParsedTraceback {
   if (lang === "typescript" || lang === "javascript") {
     return parseNodeTraceback(stderr);
+  }
+  if (lang === "java") {
+    return parseJavaTraceback(stderr);
   }
   if (lang === "python") {
     return parsePythonTraceback(stderr);
@@ -151,6 +232,11 @@ export function parseUniversalTraceback(
   // 自动启发式探测
   if (stderr.includes("Traceback (most recent call last):")) {
     return parsePythonTraceback(stderr);
+  }
+  if (
+    /Exception in thread "[^"]*"|java\.lang\.|java\.\w+\.|\.java:\d+\)/.test(stderr)
+  ) {
+    return parseJavaTraceback(stderr);
   }
   if (
     /\b(?:TypeError|ReferenceError|SyntaxError|RangeError|ERR_MODULE_NOT_FOUND|at\s+.*:\d+:\d+)\b/.test(

@@ -29,9 +29,9 @@ export interface SandboxOptions {
    */
   env?: Record<string, string>;
   /**
-   * 目标语言生态 (python | typescript | javascript)，默认 python
+   * 目标语言生态 (python | typescript | javascript | java)，默认 python
    */
-  language?: "python" | "typescript" | "javascript";
+  language?: "python" | "typescript" | "javascript" | "java";
   /**
    * 自定义注入的复现脚本文件名 (如 repro.mjs 或 repro.py)
    */

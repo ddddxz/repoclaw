@@ -6,6 +6,7 @@ import {
   inspectPythonRepo,
   detectRepoLanguage,
   inspectJsTsRepo,
+  inspectJavaRepo,
   inspectRepo,
 } from "../src/git.js";
 
@@ -130,6 +131,39 @@ describe("@repoclaw/core 多语言仓库探测与分析测试 (JS/TS/Universal)"
       expect(pyMeta.language).toBe("python");
       expect(pyMeta.testRunner).toBe("pytest");
       expect(pyMeta.entryFiles).toContain("app.py");
+
+      // 清空并切换为 Java (Maven) 仓库
+      await fs.rm(path.join(tempDir, "requirements.txt"));
+      await fs.rm(path.join(tempDir, "app.py"));
+      await fs.writeFile(path.join(tempDir, "pom.xml"), "<project></project>");
+      const javaDir = path.join(tempDir, "src", "main", "java", "com", "alibaba", "fastjson2");
+      await fs.mkdir(javaDir, { recursive: true });
+      await fs.writeFile(path.join(javaDir, "JSONReader.java"), "package com.alibaba.fastjson2;\npublic class JSONReader {}");
+
+      const javaMeta = await inspectRepo(tempDir);
+      expect(javaMeta.language).toBe("java");
+      expect(javaMeta.testRunner).toBe("junit");
+      expect(javaMeta.packageNames).toContain("com.alibaba.fastjson2");
+      expect(javaMeta.entryFiles.some((f) => f.includes("JSONReader.java"))).toBe(true);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("应准确提取 Java 仓库包名与 JUnit 测试框架", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "repoclaw-java-test-"));
+
+    try {
+      await fs.writeFile(path.join(tempDir, "pom.xml"), "<project><groupId>org.apache.dubbo</groupId></project>");
+      const dubboDir = path.join(tempDir, "src", "main", "java", "org", "apache", "dubbo", "rpc");
+      await fs.mkdir(dubboDir, { recursive: true });
+      await fs.writeFile(path.join(dubboDir, "RpcInvocation.java"), "package org.apache.dubbo.rpc;\npublic class RpcInvocation {}");
+
+      const meta = await inspectJavaRepo(tempDir);
+      expect(meta.language).toBe("java");
+      expect(meta.testRunner).toBe("junit");
+      expect(meta.packageNames).toContain("org.apache.dubbo.rpc");
+      expect(meta.entryFiles.some((f) => f.includes("RpcInvocation.java"))).toBe(true);
     } finally {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
