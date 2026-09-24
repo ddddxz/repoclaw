@@ -101,12 +101,27 @@ export async function inspectPythonRepo(
           // 忽略读取错误
         }
       } else {
-        // 检查目录内是否存在 __init__.py 或其它 py 文件
+        // 检查目录内是否存在 __init__.py 或其它 py 文件，或子目录中包含 py 文件 (支持命名空间包/深层模块结构)
         const subDir = path.join(repoDir, entry.name);
         try {
-          const subEntries = await fs.readdir(subDir);
-          if (subEntries.some((f) => f.endsWith(".py"))) {
+          const subEntries = await fs.readdir(subDir, { withFileTypes: true });
+          if (subEntries.some((f) => f.isFile() && f.name.endsWith(".py"))) {
             packageNames.push(entry.name);
+          } else {
+            // 递归/深层检查一级子目录 (如 gateway/platforms/xxx.py)
+            for (const sub of subEntries) {
+              if (sub.isDirectory()) {
+                try {
+                  const subSubEntries = await fs.readdir(path.join(subDir, sub.name));
+                  if (subSubEntries.some((f) => f.endsWith(".py"))) {
+                    packageNames.push(entry.name);
+                    break;
+                  }
+                } catch {
+                  // 忽略读取错误
+                }
+              }
+            }
           }
         } catch {
           // 忽略

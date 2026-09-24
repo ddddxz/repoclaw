@@ -7,14 +7,16 @@ import { MockSandboxRunner } from "@repoclaw/sandbox";
 
 describe("真实大型开源工程实战复现测试 (NousResearch/hermes-agent)", () => {
   it("实战场景: 针对真实 Hermes-Agent Issue #120831 进行 AST 符号抽取与闭环复现", async () => {
-    // 优先检查本地是否下载了完整 Hermes 仓库，若在 CI 环境中则自适应生成等价工程架构
-    const localHermesPath = "C:/Users/31779/AppData/Local/Temp/hermes-agent-root/hermes-agent-main";
-    const hasLocalHermes = await fs
-      .stat(localHermesPath)
-      .then((s) => s.isDirectory())
-      .catch(() => false);
+    // 优先检查环境变量指定的本地完整 Hermes 仓库路径，默认使用自适应构建的高保真真实工程拓扑
+    const localHermesPath = process.env.HERMES_DIR;
+    const hasLocalHermes =
+      Boolean(localHermesPath) &&
+      (await fs
+        .stat(localHermesPath!)
+        .then((s) => s.isDirectory())
+        .catch(() => false));
 
-    let repoDir = localHermesPath;
+    let repoDir = localHermesPath || "";
     let tempDirToClean: string | null = null;
 
     if (!hasLocalHermes) {
@@ -26,6 +28,12 @@ describe("真实大型开源工程实战复现测试 (NousResearch/hermes-agent)
       await fs.mkdir(path.join(tempDir, "gateway", "platforms"), { recursive: true });
       await fs.mkdir(path.join(tempDir, "tools"), { recursive: true });
       await fs.mkdir(path.join(tempDir, "agent"), { recursive: true });
+
+      // 写入真实的 Python 包初始化文件
+      await fs.writeFile(path.join(tempDir, "gateway", "__init__.py"), "");
+      await fs.writeFile(path.join(tempDir, "gateway", "platforms", "__init__.py"), "");
+      await fs.writeFile(path.join(tempDir, "tools", "__init__.py"), "");
+      await fs.writeFile(path.join(tempDir, "agent", "__init__.py"), "");
 
       // 写入真实的 api_server.py 关键代码
       await fs.writeFile(
