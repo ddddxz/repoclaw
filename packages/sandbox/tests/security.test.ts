@@ -3,6 +3,8 @@ import {
   buildSecureContainerConfig,
   validateSandboxSecurity,
   parsePythonTraceback,
+  parseNodeTraceback,
+  parseUniversalTraceback,
   MockSandboxRunner,
   createSandboxRunner,
 } from "../src/index.js";
@@ -24,6 +26,21 @@ describe("@repoclaw/sandbox 沙箱隔离器与安全性基线测试", () => {
       expect(config.HostConfig?.Binds).toContain("C:/fake/repo:/workspace:ro");
 
       // 应当顺利通过安全审计校验
+      expect(() => validateSandboxSecurity(config)).not.toThrow();
+    });
+
+    it("当指定 Node/TS 语言时，应自动配置 node 运行镜像与 repro.mjs 脚本入口", () => {
+      const config = buildSecureContainerConfig({
+        hostRepoDir: "C:/fake/deepseek-harness",
+        scriptContent: "import './packages/util/index.js';",
+        language: "typescript",
+      });
+
+      expect(config.Image).toBe("node:20-slim");
+      expect(config.Cmd).toEqual(["node", "/scratch/repro.mjs"]);
+      expect(config.Env).toContain("NODE_ENV=test");
+      expect(config.HostConfig?.NetworkMode).toBe("none");
+      expect(config.HostConfig?.ReadonlyRootfs).toBe(true);
       expect(() => validateSandboxSecurity(config)).not.toThrow();
     });
 
@@ -52,8 +69,8 @@ describe("@repoclaw/sandbox 沙箱隔离器与安全性基线测试", () => {
     });
   });
 
-  describe("2. Python Traceback 堆栈精准抽取 (Codex Harness 栈帧算法测试)", () => {
-    it("应从复杂 Traceback 中精确提取异常类型、消息以及出错行号", () => {
+  describe("2. Python & Node.js Traceback 堆栈精准抽取测试", () => {
+    it("应从复杂 Python Traceback 中精确提取异常类型、消息以及出错行号", () => {
       const stderr = `
 Traceback (most recent call last):
   File "/workspace/math_utils.py", line 42, in safe_divide
@@ -68,6 +85,38 @@ ZeroDivisionError: division by zero
       expect(parsed.frames.length).toBe(1);
       expect(parsed.frames[0]?.file).toBe("/workspace/math_utils.py");
       expect(parsed.frames[0]?.line).toBe(42);
+    });
+
+    it("应从 Node.js/V8 堆栈输出中精准抽取 TypeError 及出错文件栈帧 (如 deepseek-harness 场景)", () => {
+      const nodeStderr = `
+TypeError: Cannot read properties of undefined (reading 'permission')
+    at PermissionManager.check (/workspace/packages/sandbox/permission.js:42:15)
+    at runAction (/workspace/apps/cli/index.js:88:9)
+    at async Object.run (/scratch/repro.mjs:5:1)
+      `.trim();
+
+      const parsed = parseNodeTraceback(nodeStderr);
+      expect(parsed.exceptionType).toBe("TypeError");
+      expect(parsed.exceptionMessage).toBe("Cannot read properties of undefined (reading 'permission')");
+      expect(parsed.isRecoverableImportOrSyntax).toBe(false);
+      expect(parsed.frames.length).toBeGreaterThanOrEqual(2);
+      expect(parsed.frames[0]?.file).toBe("/workspace/packages/sandbox/permission.js");
+      expect(parsed.frames[0]?.line).toBe(42);
+
+      // 通过通用解析调度器也能精准命中
+      const uniParsed = parseUniversalTraceback(nodeStderr, "typescript");
+      expect(uniParsed.exceptionType).toBe("TypeError");
+    });
+
+    it("应正确识别 Node.js 模块缺失为可自愈反思异常", () => {
+      const nodeStderr = `
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/workspace/packages/util/missing.js'
+    at new NodeError (node:internal/errors:405:5)
+    at finalizeResolution (node:internal/modules/esm/resolve:324:11)
+      `.trim();
+
+      const parsed = parseNodeTraceback(nodeStderr);
+      expect(parsed.isRecoverableImportOrSyntax).toBe(true);
     });
 
     it("应正确识别 ModuleNotFoundError 为可自愈反思异常", () => {

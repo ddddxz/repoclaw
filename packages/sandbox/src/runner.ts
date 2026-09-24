@@ -36,9 +36,11 @@ export class DockerSandboxRunner implements ISandboxRunner {
       const container = await docker.createContainer(containerConfig);
       containerId = container.id;
 
-      // 3. 将 repro.py 复现脚本通过 tar 流安全注入 /scratch 目录
+      // 3. 将复现脚本通过 tar 流安全注入 /scratch 目录
+      const isNode = options.language === "typescript" || options.language === "javascript";
+      const scriptFileName = options.scriptFileName ?? (isNode ? "repro.mjs" : "repro.py");
       const pack = tar.pack();
-      pack.entry({ name: "repro.py", mode: 0o755 }, options.scriptContent);
+      pack.entry({ name: scriptFileName, mode: 0o755 }, options.scriptContent);
       pack.finalize();
       await container.putArchive(pack as unknown as NodeJS.ReadableStream, { path: "/scratch" });
 

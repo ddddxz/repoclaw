@@ -6,6 +6,7 @@ import type { SandboxOptions } from "./types.js";
  */
 export const SANDBOX_DEFAULTS = {
   IMAGE: "python:3.11-slim",
+  NODE_IMAGE: "node:20-slim",
   TIMEOUT_MS: 30_000,                  // 30 秒硬超时熔断
   MEMORY_BYTES: 512 * 1024 * 1024,      // 512MB 内存上限
   NANO_CPUS: 1_000_000_000,             // 1.0 个 CPU 核心
@@ -13,6 +14,7 @@ export const SANDBOX_DEFAULTS = {
   USER: "1000:1000",                    // 降权执行用户 (非 root)
   WORKING_DIR: "/scratch",
   REPRO_FILE_PATH: "/scratch/repro.py",
+  NODE_REPRO_FILE_PATH: "/scratch/repro.mjs",
 } as const;
 
 /**
@@ -20,14 +22,21 @@ export const SANDBOX_DEFAULTS = {
  */
 export function buildSecureContainerConfig(options: SandboxOptions): Docker.ContainerCreateOptions {
   const memory = options.memoryBytes ?? SANDBOX_DEFAULTS.MEMORY_BYTES;
-  const image = options.imageName ?? SANDBOX_DEFAULTS.IMAGE;
+  const isNode = options.language === "typescript" || options.language === "javascript";
+  const defaultImage = isNode ? SANDBOX_DEFAULTS.NODE_IMAGE : SANDBOX_DEFAULTS.IMAGE;
+  const image = options.imageName ?? defaultImage;
+
+  const scriptFileName = options.scriptFileName ?? (isNode ? "repro.mjs" : "repro.py");
+  const reproFilePath = `${SANDBOX_DEFAULTS.WORKING_DIR}/${scriptFileName}`;
 
   // 将环境变量转化为 KEY=VALUE 格式
-  const envArray: string[] = [
-    "PYTHONUNBUFFERED=1",
-    "PYTHONDONTWRITEBYTECODE=1",
-    "PYTHONPATH=/workspace",
-  ];
+  const envArray: string[] = isNode
+    ? ["NODE_ENV=test", "NODE_PATH=/workspace/node_modules:/workspace"]
+    : [
+        "PYTHONUNBUFFERED=1",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPATH=/workspace",
+      ];
   if (options.env) {
     for (const [k, v] of Object.entries(options.env)) {
       envArray.push(`${k}=${v}`);
@@ -39,13 +48,15 @@ export function buildSecureContainerConfig(options: SandboxOptions): Docker.Cont
     throw new Error("沙箱启动失败：未指定有效的 hostRepoDir 仓库挂载路径");
   }
 
+  const cmd = isNode ? ["node", reproFilePath] : ["python", reproFilePath];
+
   return {
     Image: image,
     Tty: false,
     OpenStdin: false,
     User: SANDBOX_DEFAULTS.USER,
     WorkingDir: SANDBOX_DEFAULTS.WORKING_DIR,
-    Cmd: ["python", SANDBOX_DEFAULTS.REPRO_FILE_PATH],
+    Cmd: cmd,
     Env: envArray,
     HostConfig: {
       // 1. 网络绝对断网，杜绝反弹 Shell、对外探测与挖矿

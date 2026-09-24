@@ -58,4 +58,24 @@ ValueError: Invalid argument
     expect(result.isVerified).toBe(false);
     expect(result.actualException).toBe("None");
   });
+
+  it("当抛出 Node.js TypeError 且包含关键词时，判定为已确证 (Verified - deepseek-harness 场景)", () => {
+    const stderr = `
+TypeError: Cannot read properties of undefined (reading 'permission')
+    at PermissionManager.check (/workspace/packages/sandbox/permission.js:42:15)
+    at runAction (/workspace/apps/cli/index.js:88:9)
+    `.trim();
+
+    const result = matchExecutionTraceback(
+      "TypeError",
+      ["Cannot read properties of undefined"],
+      stderr,
+      "typescript"
+    );
+
+    expect(result.isVerified).toBe(true);
+    expect(result.actualException).toBe("TypeError");
+    expect(result.hasKeywordMatch).toBe(true);
+    expect(result.isRecoverableError).toBe(false);
+  });
 });

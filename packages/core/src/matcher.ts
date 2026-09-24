@@ -1,4 +1,5 @@
-import { parsePythonTraceback, type ParsedTraceback } from "@repoclaw/sandbox";
+import { parseUniversalTraceback, type ParsedTraceback } from "@repoclaw/sandbox";
+import type { RepoLanguage } from "./git.js";
 
 export interface MatchResult {
   /**
@@ -33,9 +34,10 @@ export interface MatchResult {
 export function matchExecutionTraceback(
   targetException: string,
   errorKeywords: string[],
-  actualStderr: string
+  actualStderr: string,
+  language?: RepoLanguage
 ): MatchResult {
-  const parsed = parsePythonTraceback(actualStderr);
+  const parsed = parseUniversalTraceback(actualStderr, language === "unknown" ? undefined : language);
   const actualException = parsed.exceptionType;
 
   // 1. 若没有抛出任何标准异常
@@ -45,7 +47,7 @@ export function matchExecutionTraceback(
       actualException: "None",
       hasKeywordMatch: false,
       isRecoverableError: false,
-      reason: "沙箱未捕获到有效的 Python 异常堆栈",
+      reason: "沙箱未捕获到有效的异常堆栈",
       parsedTraceback: parsed,
     };
   }

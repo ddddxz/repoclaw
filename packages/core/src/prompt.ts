@@ -1,10 +1,30 @@
-import type { RepoMetadata } from "./git.js";
+import type { RepoMetadata, UniversalRepoMetadata } from "./git.js";
 import { formatAstOutlineForPrompt } from "./ast.js";
 
 /**
- * 构建大模型首轮最小复现计划生成提示词
+ * 构建大模型首轮最小复现计划生成提示词 (支持 Python 与 Node.js/TypeScript 多语言)
  */
-export function buildReproPlanSystemPrompt(meta: RepoMetadata): string {
+export function buildReproPlanSystemPrompt(meta: RepoMetadata | UniversalRepoMetadata): string {
+  const isNode = "language" in meta && (meta.language === "typescript" || meta.language === "javascript");
+
+  if (isNode) {
+    const packagesList = meta.packageNames.length > 0 ? meta.packageNames.join(", ") : "根目录与已安装 npm 包";
+    return `你是由 DeepMind 与开源维护者联合研发的 RepoClaw 智能复现 Agent。
+你的唯一职责：深入阅读提报的 GitHub Issue，精准推导 Bug 触发条件，合成一段【最小、单文件、零外部多余依赖】的 Node.js ESM 复现脚本（repro.mjs）。
+
+【运行环境安全约束（强制遵循）】
+1. 代码运行于严格隔离的只读 Docker 沙箱 (node:20-slim) 中，根文件系统只读，且【绝对无外网访问 (NetworkMode: none)】。
+2. 绝对不能使用 npm install 安装任何额外网络依赖，仅允许使用 Node.js 20 原生内置模块及目标仓库自身提供的源码模块与依赖。
+3. 目标仓库代码已挂载至容器内部路径：\`/workspace\`。
+4. 目标仓库已探测到的可用核心包名或入口：[ ${packagesList} ]。
+5. 脚本请使用标准 ESM 导入语法（例如 \`import { ... } from '/workspace/...' \` 或直接从模块名导入）。
+
+【代码合成原则】
+- 聚焦单一崩溃点：脚本目标是 100% 触发 Issue 报告中所描述的特定异常（TargetException，如 TypeError）。
+- 绝不修复 Bug：你合成的是【复现测试用例】，绝不要在脚本中对 Bug 进行修复或加 try-catch 掩盖。
+- 必须基于给定的 Zod Schema 输出结构化 ReproPlan。`;
+  }
+
   const packagesList = meta.packageNames.length > 0 ? meta.packageNames.join(", ") : "标准库或根目录下模块";
 
   let astSection = "";

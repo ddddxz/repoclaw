@@ -1,6 +1,6 @@
 import type { ISandboxRunner } from "@repoclaw/sandbox";
 import type { TaskStatus, TaskStep, ReproPlan, Reflection } from "@repoclaw/shared";
-import { inspectPythonRepo, type RepoMetadata } from "./git.js";
+import { inspectRepo, type UniversalRepoMetadata } from "./git.js";
 import { MockLlmProvider, type ILLMProvider } from "./llm.js";
 import { matchExecutionTraceback, type MatchResult } from "./matcher.js";
 
@@ -58,9 +58,9 @@ export class ReproAgent {
       ...this.options.issueTitle.split(/[\s,:;()\[\]{}]+/),
       ...this.options.issueBody.slice(0, 500).split(/[\s,:;()\[\]{}]+/),
     ].filter((w) => w.length > 2);
-    const meta: RepoMetadata = await inspectPythonRepo(this.options.repoDir, keywords);
+    const meta: UniversalRepoMetadata = await inspectRepo(this.options.repoDir, keywords);
     const outlineCount = meta.astOutlines?.length ?? 0;
-    this.log(`目标仓库探测完成：发现模块 [${meta.packageNames.join(", ")}]，已精准提取 ${outlineCount} 个模块的 AST 符号骨架`);
+    this.log(`目标仓库探测完成：语言 [${meta.language}]，发现模块 [${meta.packageNames.join(", ")}]，已精准提取 ${outlineCount} 个模块的 AST 符号骨架`);
 
     // 2. [GENERATING]: 大模型生成首轮复现计划
     this.options.onStepChange?.("GENERATING", "大模型正在推导 Issue 意图并合成最小单文件测试用例...");
@@ -98,6 +98,7 @@ export class ReproAgent {
         hostRepoDir: this.options.repoDir,
         scriptContent: currentScript,
         timeoutMs: this.options.sandboxTimeoutMs,
+        language: meta.language === "unknown" ? undefined : meta.language,
       });
 
       finalTraceback = executionOutput.stderr;
@@ -109,7 +110,8 @@ export class ReproAgent {
       const match = matchExecutionTraceback(
         plan.targetException,
         plan.errorKeywords,
-        executionOutput.stderr
+        executionOutput.stderr,
+        meta.language
       );
       lastMatch = match;
       this.log(`比对判定结果: ${match.reason} (Verified=${match.isVerified}, Recoverable=${match.isRecoverableError})`);

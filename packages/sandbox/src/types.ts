@@ -28,6 +28,14 @@ export interface SandboxOptions {
    * 环境变量注入
    */
   env?: Record<string, string>;
+  /**
+   * 目标语言生态 (python | typescript | javascript)，默认 python
+   */
+  language?: "python" | "typescript" | "javascript";
+  /**
+   * 自定义注入的复现脚本文件名 (如 repro.mjs 或 repro.py)
+   */
+  scriptFileName?: string;
 }
 
 /**

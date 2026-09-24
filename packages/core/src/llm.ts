@@ -6,7 +6,7 @@ import {
   type ReproPlan,
   type Reflection,
 } from "@repoclaw/shared";
-import type { RepoMetadata } from "./git.js";
+import type { RepoMetadata, UniversalRepoMetadata } from "./git.js";
 import {
   buildReproPlanSystemPrompt,
   buildIssueUserPrompt,
@@ -18,7 +18,7 @@ import {
  */
 export interface ILLMProvider {
   generateReproPlan(
-    meta: RepoMetadata,
+    meta: RepoMetadata | UniversalRepoMetadata,
     issueTitle: string,
     issueBody: string
   ): Promise<ReproPlan>;
@@ -57,7 +57,7 @@ export class VercelAILlmProvider implements ILLMProvider {
   }
 
   async generateReproPlan(
-    meta: RepoMetadata,
+    meta: RepoMetadata | UniversalRepoMetadata,
     issueTitle: string,
     issueBody: string
   ): Promise<ReproPlan> {
@@ -87,7 +87,7 @@ export class VercelAILlmProvider implements ILLMProvider {
       model: this.getModel(),
       schema: ReflectionSchema,
       mode: "json",
-      system: "你是一个专业的 Python 调试专家，根据错误堆栈精准定位并修改复现测试代码。",
+      system: "你是一个专业的软件调试与复现专家，根据错误堆栈精准定位并修改复现测试代码。",
       prompt,
       temperature: 0.1,
     });
@@ -112,7 +112,7 @@ export class MockLlmProvider implements ILLMProvider {
   }
 
   async generateReproPlan(
-    _meta: RepoMetadata,
+    meta: RepoMetadata | UniversalRepoMetadata,
     issueTitle: string,
     issueBody: string
   ): Promise<ReproPlan> {
@@ -120,7 +120,30 @@ export class MockLlmProvider implements ILLMProvider {
       return this.customReproPlan(issueTitle, issueBody);
     }
 
-    // 默认推导逻辑
+    const isNode = "language" in meta && (meta.language === "typescript" || meta.language === "javascript");
+
+    if (isNode) {
+      let targetException = "TypeError";
+      if (issueTitle.includes("ReferenceError") || issueBody.includes("ReferenceError")) {
+        targetException = "ReferenceError";
+      } else if (issueTitle.includes("RangeError") || issueBody.includes("RangeError")) {
+        targetException = "RangeError";
+      }
+
+      let reproScript = `import { checkPermission } from '/workspace/packages/util/index.js';\ncheckPermission(undefined);\n`;
+      if (issueTitle.includes("parseConfig") || issueBody.includes("parseConfig")) {
+        reproScript = `import { parseConfig } from '/workspace/src/config.js';\nparseConfig(null);\n`;
+      }
+
+      return {
+        targetException,
+        errorKeywords: ["Cannot read properties", "undefined", "TypeError"],
+        reproScript,
+        explanation: `向函数传递非法参数以触发预期的 ${targetException}`,
+      };
+    }
+
+    // 默认 Python 推导逻辑
     let targetException = "ValueError";
     if (issueTitle.includes("ZeroDivision") || issueBody.includes("ZeroDivisionError")) {
       targetException = "ZeroDivisionError";
@@ -150,18 +173,24 @@ export class MockLlmProvider implements ILLMProvider {
       return this.customReflection(stderr, retryRound);
     }
 
-    if (stderr.includes("ModuleNotFoundError")) {
+    if (
+      stderr.includes("ModuleNotFoundError") ||
+      stderr.includes("ERR_MODULE_NOT_FOUND") ||
+      stderr.includes("Cannot find module")
+    ) {
       return {
-        analysis: "上一轮未正确导入模块，添加 sys.path 修正路径",
+        analysis: "上一轮未正确导入模块，自动修复模块导入路径",
         actionType: "PATCH_IMPORTS",
-        patchedScript: `import sys\nsys.path.insert(0, '/workspace')\nresult = 1 / 0\n`,
+        patchedScript: previousScript.includes("import sys")
+          ? `import sys\nsys.path.insert(0, '/workspace')\nresult = 1 / 0\n`
+          : previousScript,
       };
     }
 
     return {
       analysis: `第 ${retryRound} 轮自愈：修改边界入参触发异常`,
       actionType: "MUTATE_INPUTS",
-      patchedScript: previousScript + "\n# mutated input\nresult = 1 / 0\n",
+      patchedScript: previousScript + "\n# mutated input\n",
     };
   }
 }
